@@ -66,8 +66,10 @@ export async function getUserBookings(userId: string) {
     .select(`
       *,
       events (
+        id,
         title,
         event_date,
+        dj_name,
         poster_image_url
       )
     `)
