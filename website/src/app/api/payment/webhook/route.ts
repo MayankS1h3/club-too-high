@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyRazorpaySignature } from '@/lib/razorpay'
 import { supabase } from '@/lib/supabase'
-import crypto from 'crypto'
+import { createHmac } from 'crypto'
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,8 +16,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify webhook signature
-    const expectedSignature = crypto
-      .createHmac('sha256', process.env.RAZORPAY_WEBHOOK_SECRET!)
+    const expectedSignature = createHmac('sha256', process.env.RAZORPAY_WEBHOOK_SECRET!)
       .update(body)
       .digest('hex')
 

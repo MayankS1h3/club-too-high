@@ -1,8 +1,8 @@
 import Razorpay from 'razorpay'
-import crypto from 'crypto'
+import { createHmac } from 'crypto'
 
 // Initialize Razorpay instance (server-side only)
-export const razorpay = new Razorpay({
+const razorpay = new Razorpay({
   key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
   key_secret: process.env.RAZORPAY_KEY_SECRET!,
 })
@@ -27,8 +27,7 @@ export function verifyRazorpaySignature(
 ): boolean {
   try {
     const body = razorpay_order_id + '|' + razorpay_payment_id
-    const expectedSignature = crypto
-      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET!)
+    const expectedSignature = createHmac('sha256', process.env.RAZORPAY_KEY_SECRET!)
       .update(body.toString())
       .digest('hex')
     
