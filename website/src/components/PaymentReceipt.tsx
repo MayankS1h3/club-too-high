@@ -1,17 +1,30 @@
 'use client'
 
 import { useState } from 'react'
-import type { Booking, Event } from '@/lib/supabase'
+import type { BookingWithEvent } from '@/lib/database-types'
 
 interface PaymentReceiptProps {
-  booking: Booking & {
-    events: Event
-  }
+  booking: BookingWithEvent
   onClose: () => void
 }
 
 export default function PaymentReceipt({ booking, onClose }: PaymentReceiptProps) {
   const [printing, setPrinting] = useState(false)
+
+  // Guard clause for missing event data
+  if (!booking.events) {
+    return (
+      <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+        <div className="bg-white max-w-sm w-full rounded-lg p-6 text-center">
+          <h3 className="text-lg font-medium mb-4">Receipt Unavailable</h3>
+          <p className="text-gray-600 mb-4">Event details are not available for this booking.</p>
+          <button onClick={onClose} className="px-4 py-2 bg-gray-900 text-white rounded">
+            Close
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   const handlePrint = () => {
     setPrinting(true)
@@ -99,12 +112,12 @@ export default function PaymentReceipt({ booking, onClose }: PaymentReceiptProps
             
             <div className="flex justify-between">
               <span className="text-gray-600">Price per ticket:</span>
-              <span>₹{booking.events.ticket_price.toLocaleString()}</span>
+              <span>₹{(booking.total_amount / booking.num_of_tickets).toLocaleString()}</span>
             </div>
             
             <div className="flex justify-between border-t pt-3 font-bold">
               <span>Total Amount:</span>
-              <span>₹{(booking.amount_paid || booking.total_amount).toLocaleString()}</span>
+              <span>₹{booking.total_amount.toLocaleString()}</span>
             </div>
             
             <div className="flex justify-between">
@@ -117,10 +130,10 @@ export default function PaymentReceipt({ booking, onClose }: PaymentReceiptProps
               <span>{formatDate(booking.created_at)}</span>
             </div>
             
-            {booking.confirmed_at && (
+            {booking.payment_status === 'paid' && (
               <div className="flex justify-between">
-                <span className="text-gray-600">Confirmed At:</span>
-                <span>{formatDate(booking.confirmed_at)}</span>
+                <span className="text-gray-600">Payment Confirmed:</span>
+                <span>{formatDate(booking.updated_at)}</span>
               </div>
             )}
             
@@ -141,7 +154,7 @@ export default function PaymentReceipt({ booking, onClose }: PaymentReceiptProps
           </div>
 
           {/* QR Code Placeholder */}
-          {booking.status === 'confirmed' && (
+          {booking.status === 'paid' && (
             <div className="text-center border-t pt-4">
               <div className="w-20 h-20 bg-gray-200 mx-auto mb-2 flex items-center justify-center">
                 <span className="text-xs text-gray-500">QR Code</span>

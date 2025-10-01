@@ -4,12 +4,8 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/auth'
 import { getUserBookings } from '@/lib/database'
 import PaymentReceipt from '@/components/PaymentReceipt'
-import type { Booking, Event } from '@/lib/supabase'
+import type { BookingWithEvent } from '@/lib/database-types'
 import { useRouter } from 'next/navigation'
-
-interface BookingWithEvent extends Booking {
-  events: Event
-}
 
 export default function MyBookingsPage() {
   const { user, loading: authLoading } = useAuth()
@@ -152,9 +148,9 @@ export default function MyBookingsPage() {
                       <div className="flex items-start justify-between mb-4">
                         <div>
                           <h3 className="text-2xl font-light text-white mb-2">
-                            {booking.events.title}
+                            {booking.events?.title || 'Event Details Unavailable'}
                           </h3>
-                          {booking.events.dj_name && (
+                          {booking.events?.dj_name && (
                             <div className="text-gray-400 mb-2">
                               Featuring {booking.events.dj_name}
                             </div>
@@ -164,8 +160,8 @@ export default function MyBookingsPage() {
                       </div>
                       
                       <div className="text-gray-400 space-y-1">
-                        <div>{formatDate(booking.events.event_date)}</div>
-                        <div>{formatTime(booking.events.event_date)}</div>
+                        <div>{booking.events ? formatDate(booking.events.event_date) : 'Date unavailable'}</div>
+                        <div>{booking.events ? formatTime(booking.events.event_date) : 'Time unavailable'}</div>
                       </div>
                     </div>
 
@@ -175,12 +171,12 @@ export default function MyBookingsPage() {
                         {booking.num_of_tickets} ticket{booking.num_of_tickets > 1 ? 's' : ''}
                       </div>
                       <div className="text-white text-xl font-medium mb-2">
-                        ₹{(booking.amount_paid || booking.total_amount).toLocaleString()}
+                        ₹{booking.total_amount.toLocaleString()}
                       </div>
                       <div className="text-gray-400 text-sm space-y-1">
                         <div>Booked {new Date(booking.created_at).toLocaleDateString()}</div>
-                        {booking.confirmed_at && (
-                          <div>Confirmed {new Date(booking.confirmed_at).toLocaleDateString()}</div>
+                        {booking.payment_status === 'paid' && (
+                          <div>Payment Confirmed</div>
                         )}
                         {booking.razorpay_payment_id && (
                           <div className="font-mono text-xs">ID: {booking.razorpay_payment_id.slice(-8)}</div>
@@ -190,11 +186,11 @@ export default function MyBookingsPage() {
                   </div>
 
                   {/* Event Poster */}
-                  {booking.events.poster_image_url && (
+                  {booking.events?.poster_image_url && (
                     <div className="mt-6 lg:hidden">
                       <img
                         src={booking.events.poster_image_url}
-                        alt={booking.events.title}
+                        alt={booking.events.title || 'Event poster'}
                         className="w-full h-48 object-cover"
                       />
                     </div>
@@ -202,13 +198,15 @@ export default function MyBookingsPage() {
 
                   {/* Actions */}
                   <div className="mt-6 pt-6 border-t border-gray-800 flex flex-col sm:flex-row gap-4">
-                    <button 
-                      onClick={() => router.push(`/events/${booking.events.id}`)}
-                      className="px-6 py-2 border border-gray-600 text-white hover:border-white hover:bg-white hover:text-black transition-all duration-300 text-sm font-medium"
-                    >
-                      VIEW EVENT
-                    </button>
-                    {(booking.status === 'confirmed' || booking.status === 'pending') && (
+                    {booking.events && (
+                      <button 
+                        onClick={() => router.push(`/events/${booking.events!.id}`)}
+                        className="px-6 py-2 border border-gray-600 text-white hover:border-white hover:bg-white hover:text-black transition-all duration-300 text-sm font-medium"
+                      >
+                        VIEW EVENT
+                      </button>
+                    )}
+                    {(booking.status === 'paid' || booking.status === 'pending') && (
                       <button 
                         onClick={() => setSelectedBooking(booking)}
                         className="px-6 py-2 bg-purple-600 text-white hover:bg-purple-700 transition-colors text-sm font-medium"
@@ -216,7 +214,7 @@ export default function MyBookingsPage() {
                         VIEW RECEIPT
                       </button>
                     )}
-                    {booking.status === 'confirmed' && (
+                    {booking.status === 'paid' && (
                       <button className="px-6 py-2 bg-gray-800 text-white hover:bg-gray-700 transition-colors text-sm font-medium">
                         DOWNLOAD TICKET
                       </button>

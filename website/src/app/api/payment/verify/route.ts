@@ -7,10 +7,16 @@ import {
   parseJsonBody, 
   createErrorResponse, 
   createSuccessResponse,
-  checkRateLimit,
   getClientIP,
   validateMethod
 } from '@/lib/api-helpers'
+import { 
+  checkAdvancedRateLimit, 
+  detectSuspiciousActivity
+} from '@/lib/rate-limiting'
+import {
+  updatePaymentAttemptStatus
+} from '@/lib/payment-protection'
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,15 +25,31 @@ export async function POST(request: NextRequest) {
       return createErrorResponse('Method not allowed', 405)
     }
 
-    // Rate limiting
+    // Advanced rate limiting
     const clientIP = getClientIP(request)
-    const rateLimit = checkRateLimit(`payment-verify-${clientIP}`, 10, 60000) // 10 requests per minute
+    const userAgent = request.headers.get('user-agent') || undefined
+    
+    // Check for suspicious activity
+    const suspiciousActivity = detectSuspiciousActivity(clientIP, userAgent, request.url)
+    if (suspiciousActivity.isSuspicious && suspiciousActivity.riskLevel === 'high') {
+      return createErrorResponse(
+        'Suspicious activity detected. Please try again later.',
+        429,
+        { reason: suspiciousActivity.reason }
+      )
+    }
+    
+    // Advanced rate limiting for payment verification
+    const rateLimit = checkAdvancedRateLimit(clientIP, 'payment-verify')
     
     if (!rateLimit.allowed) {
       return createErrorResponse(
-        'Too many requests. Please try again later.',
+        'Too many verification requests. Please try again later.',
         429,
-        { resetTime: rateLimit.resetTime }
+        { 
+          retryAfter: rateLimit.retryAfter,
+          resetTime: rateLimit.resetTime 
+        }
       )
     }
 

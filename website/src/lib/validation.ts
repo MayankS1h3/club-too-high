@@ -210,6 +210,40 @@ export function validateEventDescription(description: string): ValidationResult 
   return validateString(description, 10, 1000)
 }
 
+// Full name validation
+export function validateName(name: string): ValidationResult {
+  const result = new ValidationResult()
+  
+  if (!name || typeof name !== 'string') {
+    result.addError('name', 'Name is required')
+    return result
+  }
+
+  const trimmedName = name.trim()
+  
+  if (trimmedName.length < 2) {
+    result.addError('name', 'Name must be at least 2 characters long')
+  }
+
+  if (trimmedName.length > 50) {
+    result.addError('name', 'Name must be less than 50 characters')
+  }
+
+  // Check for valid characters (letters, spaces, hyphens, apostrophes)
+  const nameRegex = /^[a-zA-Z\s\-']+$/
+  if (!nameRegex.test(trimmedName)) {
+    result.addError('name', 'Name can only contain letters, spaces, hyphens, and apostrophes')
+  }
+
+  // Check for minimum word count (at least first name)
+  const words = trimmedName.split(/\s+/).filter(word => word.length > 0)
+  if (words.length < 1) {
+    result.addError('name', 'Please enter at least your first name')
+  }
+
+  return result
+}
+
 // Combined validation helper
 export function combineValidationResults(results: ValidationResult[]): ValidationResult {
   const allErrors = results.flatMap(result => result.errors)
