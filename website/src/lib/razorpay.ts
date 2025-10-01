@@ -1,13 +1,12 @@
-import Razorpay from 'razorpay'
-import { createHmac } from 'crypto'
+// Client-side Razorpay configuration
+// This file is safe to be imported in client components
 
-// Initialize Razorpay instance (server-side only)
-const razorpay = new Razorpay({
-  key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!,
-})
+// Validate that required environment variables are present
+if (!process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID) {
+  throw new Error('NEXT_PUBLIC_RAZORPAY_KEY_ID is not defined')
+}
 
-// Razorpay configuration for client-side
+// Razorpay configuration for client-side (public information only)
 export const razorpayConfig = {
   key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
   currency: 'INR',
@@ -16,45 +15,6 @@ export const razorpayConfig = {
   image: '/favicon.ico', // Your logo URL
   theme: {
     color: '#8B5CF6' // Purple theme to match your brand
-  }
-}
-
-// Verify Razorpay payment signature
-export function verifyRazorpaySignature(
-  razorpay_order_id: string,
-  razorpay_payment_id: string,
-  razorpay_signature: string
-): boolean {
-  try {
-    const body = razorpay_order_id + '|' + razorpay_payment_id
-    const expectedSignature = createHmac('sha256', process.env.RAZORPAY_KEY_SECRET!)
-      .update(body.toString())
-      .digest('hex')
-    
-    return expectedSignature === razorpay_signature
-  } catch (error) {
-    console.error('Razorpay signature verification failed:', error)
-    return false
-  }
-}
-
-// Create Razorpay order
-export async function createRazorpayOrder(amount: number, receipt: string) {
-  try {
-    const order = await razorpay.orders.create({
-      amount: amount * 100, // Razorpay expects amount in paise
-      currency: 'INR',
-      receipt: receipt,
-      notes: {
-        company: 'Club Too High',
-        purpose: 'Event Ticket Booking'
-      }
-    })
-    
-    return order
-  } catch (error) {
-    console.error('Failed to create Razorpay order:', error)
-    throw new Error('Unable to create payment order')
   }
 }
 

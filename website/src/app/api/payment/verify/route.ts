@@ -1,21 +1,63 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyRazorpaySignature } from '@/lib/razorpay'
+import { verifyRazorpaySignature } from '@/lib/razorpay-server'
+import { updateBookingPaymentStatus } from '@/lib/database'
 import { supabase } from '@/lib/supabase'
+import { validateUUID, validateString, combineValidationResults } from '@/lib/validation'
+import { 
+  parseJsonBody, 
+  createErrorResponse, 
+  createSuccessResponse,
+  checkRateLimit,
+  getClientIP,
+  validateMethod
+} from '@/lib/api-helpers'
 
 export async function POST(request: NextRequest) {
   try {
+    // Validate HTTP method
+    if (!validateMethod(request, ['POST'])) {
+      return createErrorResponse('Method not allowed', 405)
+    }
+
+    // Rate limiting
+    const clientIP = getClientIP(request)
+    const rateLimit = checkRateLimit(`payment-verify-${clientIP}`, 10, 60000) // 10 requests per minute
+    
+    if (!rateLimit.allowed) {
+      return createErrorResponse(
+        'Too many requests. Please try again later.',
+        429,
+        { resetTime: rateLimit.resetTime }
+      )
+    }
+
+    // Parse and validate JSON body
+    const bodyResult = await parseJsonBody(request)
+    if (!bodyResult.success) {
+      return createErrorResponse(bodyResult.error!, 400)
+    }
+
     const {
       razorpay_payment_id,
       razorpay_order_id,
       razorpay_signature,
       bookingId
-    } = await request.json()
+    } = bodyResult.data
 
-    // Validate input
-    if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature || !bookingId) {
-      return NextResponse.json(
-        { error: 'Missing required parameters' },
-        { status: 400 }
+    // Comprehensive input validation
+    const validationResults = [
+      validateString(razorpay_payment_id, 1, 100),
+      validateString(razorpay_order_id, 1, 100),
+      validateString(razorpay_signature, 1, 256),
+      validateUUID(bookingId)
+    ]
+
+    const validationResult = combineValidationResults(validationResults)
+    if (!validationResult.isValid) {
+      return createErrorResponse(
+        'Validation failed',
+        400,
+        validationResult.errors
       )
     }
 
@@ -37,10 +79,7 @@ export async function POST(request: NextRequest) {
         })
         .eq('id', bookingId)
 
-      return NextResponse.json(
-        { error: 'Invalid payment signature' },
-        { status: 400 }
-      )
+      return createErrorResponse('Invalid payment signature', 400)
     }
 
     // Get booking details

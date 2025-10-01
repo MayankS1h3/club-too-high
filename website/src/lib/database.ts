@@ -103,3 +103,29 @@ export async function updateProfile(userId: string, updates: { full_name?: strin
   if (error) throw error
   return data
 }
+
+export async function updateBookingPaymentStatus(
+  bookingId: string,
+  paymentData: {
+    razorpay_payment_id: string
+    razorpay_order_id: string
+    razorpay_signature: string
+    payment_status: 'paid' | 'failed'
+  }
+) {
+  const { data, error } = await supabase
+    .from('bookings')
+    .update({
+      payment_status: paymentData.payment_status,
+      razorpay_payment_id: paymentData.razorpay_payment_id,
+      razorpay_order_id: paymentData.razorpay_order_id,
+      razorpay_signature: paymentData.razorpay_signature,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', bookingId)
+    .select()
+    .single()
+  
+  if (error) throw error
+  return data
+}

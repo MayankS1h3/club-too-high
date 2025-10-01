@@ -1,16 +1,63 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createRazorpayOrder } from '@/lib/razorpay'
+import { createRazorpayOrder } from '@/lib/razorpay-server'
+import { createBooking } from '@/lib/database'
 import { supabase } from '@/lib/supabase'
+import { 
+  validateUUID, 
+  validatePaymentAmount, 
+  validateTicketQuantity,
+  combineValidationResults
+} from '@/lib/validation'
+import { 
+  parseJsonBody, 
+  createErrorResponse, 
+  createSuccessResponse,
+  checkRateLimit,
+  getClientIP,
+  validateMethod
+} from '@/lib/api-helpers'
 
 export async function POST(request: NextRequest) {
   try {
-    const { eventId, userId, numTickets, totalAmount } = await request.json()
+    // Validate HTTP method
+    if (!validateMethod(request, ['POST'])) {
+      return createErrorResponse('Method not allowed', 405)
+    }
 
-    // Validate input
-    if (!eventId || !userId || !numTickets || !totalAmount) {
-      return NextResponse.json(
-        { error: 'Missing required parameters' },
-        { status: 400 }
+    // Rate limiting
+    const clientIP = getClientIP(request)
+    const rateLimit = checkRateLimit(`payment-create-${clientIP}`, 5, 60000) // 5 requests per minute
+    
+    if (!rateLimit.allowed) {
+      return createErrorResponse(
+        'Too many requests. Please try again later.',
+        429,
+        { resetTime: rateLimit.resetTime }
+      )
+    }
+
+    // Parse and validate JSON body
+    const bodyResult = await parseJsonBody(request)
+    if (!bodyResult.success) {
+      return createErrorResponse(bodyResult.error!, 400)
+    }
+
+    const { eventId, userId, numTickets, totalAmount } = bodyResult.data
+
+    // Comprehensive input validation
+    const validationResults = [
+      validateUUID(eventId),
+      validateUUID(userId),
+      validateTicketQuantity(numTickets),
+      validatePaymentAmount(totalAmount)
+    ]
+
+    const validationResult = combineValidationResults(validationResults)
+    if (!validationResult.isValid) {
+      return createErrorResponse(
+        'Validation failed',
+        400,
+        validationResult.errors
       )
     }
 
@@ -22,10 +69,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (eventError || !event) {
-      return NextResponse.json(
-        { error: 'Event not found' },
-        { status: 404 }
-      )
+      return createErrorResponse('Event not found', 404)
     }
 
     // Verify user exists
@@ -36,18 +80,15 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (userError || !user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      )
+      return createErrorResponse('User not found', 404)
     }
 
     // Calculate total amount (server-side validation)
     const calculatedAmount = event.ticket_price * numTickets
     if (Math.abs(calculatedAmount - totalAmount) > 0.01) {
-      return NextResponse.json(
-        { error: 'Amount mismatch' },
-        { status: 400 }
+      return createErrorResponse(
+        'Amount mismatch. Expected: ₹' + calculatedAmount + ', Received: ₹' + totalAmount,
+        400
       )
     }
 
@@ -75,13 +116,10 @@ export async function POST(request: NextRequest) {
 
     if (bookingError) {
       console.error('Failed to create booking:', bookingError)
-      return NextResponse.json(
-        { error: 'Failed to create booking' },
-        { status: 500 }
-      )
+      return createErrorResponse('Failed to create booking', 500)
     }
 
-    return NextResponse.json({
+    return createSuccessResponse({
       orderId: razorpayOrder.id,
       amount: razorpayOrder.amount,
       currency: razorpayOrder.currency,
@@ -93,9 +131,6 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Create order error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return createErrorResponse('Internal server error', 500)
   }
 }
