@@ -33,6 +33,15 @@ export type Booking = {
   payment_id: string
   status: string
   created_at: string
+  // Razorpay specific fields
+  razorpay_order_id?: string
+  razorpay_payment_id?: string
+  razorpay_signature?: string
+  receipt_id?: string
+  confirmed_at?: string
+  failure_reason?: string
+  amount_paid?: number
+  webhook_confirmed?: boolean
 }
 
 export type GalleryImage = {

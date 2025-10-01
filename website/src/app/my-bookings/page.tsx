@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/auth'
 import { getUserBookings } from '@/lib/database'
+import PaymentReceipt from '@/components/PaymentReceipt'
 import type { Booking, Event } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
@@ -16,6 +17,7 @@ export default function MyBookingsPage() {
   const [bookings, setBookings] = useState<BookingWithEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [selectedBooking, setSelectedBooking] = useState<BookingWithEvent | null>(null)
 
   useEffect(() => {
     if (authLoading) return
@@ -66,10 +68,27 @@ export default function MyBookingsPage() {
         return 'text-green-400'
       case 'pending':
         return 'text-yellow-400'
+      case 'failed':
+        return 'text-red-400'
       case 'cancelled':
         return 'text-red-400'
       default:
         return 'text-gray-400'
+    }
+  }
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'confirmed':
+        return <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm font-medium">Confirmed</span>
+      case 'pending':
+        return <span className="px-3 py-1 bg-yellow-500/20 text-yellow-400 rounded-full text-sm font-medium">Pending</span>
+      case 'failed':
+        return <span className="px-3 py-1 bg-red-500/20 text-red-400 rounded-full text-sm font-medium">Failed</span>
+      case 'cancelled':
+        return <span className="px-3 py-1 bg-gray-500/20 text-gray-400 rounded-full text-sm font-medium">Cancelled</span>
+      default:
+        return <span className="px-3 py-1 bg-gray-500/20 text-gray-400 rounded-full text-sm font-medium">{status}</span>
     }
   }
 
@@ -141,9 +160,7 @@ export default function MyBookingsPage() {
                             </div>
                           )}
                         </div>
-                        <div className={`text-sm font-medium uppercase tracking-wide ${getStatusColor(booking.status)}`}>
-                          {booking.status}
-                        </div>
+                        {getStatusBadge(booking.status)}
                       </div>
                       
                       <div className="text-gray-400 space-y-1">
@@ -158,10 +175,16 @@ export default function MyBookingsPage() {
                         {booking.num_of_tickets} ticket{booking.num_of_tickets > 1 ? 's' : ''}
                       </div>
                       <div className="text-white text-xl font-medium mb-2">
-                        ₹{booking.total_amount.toLocaleString()}
+                        ₹{(booking.amount_paid || booking.total_amount).toLocaleString()}
                       </div>
-                      <div className="text-gray-400 text-sm">
-                        Booked {new Date(booking.created_at).toLocaleDateString()}
+                      <div className="text-gray-400 text-sm space-y-1">
+                        <div>Booked {new Date(booking.created_at).toLocaleDateString()}</div>
+                        {booking.confirmed_at && (
+                          <div>Confirmed {new Date(booking.confirmed_at).toLocaleDateString()}</div>
+                        )}
+                        {booking.razorpay_payment_id && (
+                          <div className="font-mono text-xs">ID: {booking.razorpay_payment_id.slice(-8)}</div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -185,10 +208,23 @@ export default function MyBookingsPage() {
                     >
                       VIEW EVENT
                     </button>
+                    {(booking.status === 'confirmed' || booking.status === 'pending') && (
+                      <button 
+                        onClick={() => setSelectedBooking(booking)}
+                        className="px-6 py-2 bg-purple-600 text-white hover:bg-purple-700 transition-colors text-sm font-medium"
+                      >
+                        VIEW RECEIPT
+                      </button>
+                    )}
                     {booking.status === 'confirmed' && (
                       <button className="px-6 py-2 bg-gray-800 text-white hover:bg-gray-700 transition-colors text-sm font-medium">
                         DOWNLOAD TICKET
                       </button>
+                    )}
+                    {booking.status === 'failed' && booking.failure_reason && (
+                      <div className="text-red-400 text-sm">
+                        Failed: {booking.failure_reason}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -197,6 +233,14 @@ export default function MyBookingsPage() {
           </div>
         )}
       </div>
+
+      {/* Payment Receipt Modal */}
+      {selectedBooking && (
+        <PaymentReceipt
+          booking={selectedBooking}
+          onClose={() => setSelectedBooking(null)}
+        />
+      )}
     </div>
   )
 }

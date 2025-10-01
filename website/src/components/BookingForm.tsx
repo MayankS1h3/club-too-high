@@ -1,8 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createBooking } from '@/lib/database'
+import { razorpayConfig, handleRazorpayError } from '@/lib/razorpay'
 import type { Event } from '@/lib/supabase'
+import type { RazorpayOptions, RazorpayResponse } from '@/lib/razorpay'
 
 interface BookingFormProps {
   event: Event
@@ -15,37 +17,151 @@ export default function BookingForm({ event, user, onClose, onSuccess }: Booking
   const [numTickets, setNumTickets] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [step, setStep] = useState<'details' | 'payment' | 'success'>('details')
+  const [step, setStep] = useState<'details' | 'payment' | 'processing' | 'success'>('details')
+  const [razorpayLoaded, setRazorpayLoaded] = useState(false)
 
   const totalAmount = event.ticket_price * numTickets
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  // Load Razorpay script
+  useEffect(() => {
+    const loadRazorpay = () => {
+      return new Promise((resolve) => {
+        const script = document.createElement('script')
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+        script.onload = () => {
+          setRazorpayLoaded(true)
+          resolve(true)
+        }
+        script.onerror = () => resolve(false)
+        document.body.appendChild(script)
+      })
+    }
+
+    if (!window.Razorpay) {
+      loadRazorpay()
+    } else {
+      setRazorpayLoaded(true)
+    }
+  }, [])
+
+  const createOrder = async () => {
+    try {
+      const response = await fetch('/api/payment/create-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          eventId: event.id,
+          userId: user.id,
+          numTickets,
+          totalAmount,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create order')
+      }
+
+      return data
+    } catch (error: any) {
+      throw new Error(error.message || 'Failed to create payment order')
+    }
+  }
+
+  const verifyPayment = async (paymentData: RazorpayResponse, bookingId: string) => {
+    try {
+      const response = await fetch('/api/payment/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...paymentData,
+          bookingId,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Payment verification failed')
+      }
+
+      return data
+    } catch (error: any) {
+      throw new Error(error.message || 'Failed to verify payment')
+    }
+  }
+
+  const handlePayment = async () => {
+    if (!razorpayLoaded) {
+      setError('Payment system is loading. Please try again.')
+      return
+    }
+
     setLoading(true)
     setError('')
+    setStep('payment')
 
     try {
-      // Mock payment processing
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      // Generate mock payment ID
-      const paymentId = `pay_${Date.now()}_${Math.random().toString(36).substring(2)}`
-      
-      // Create booking in database
-      await createBooking(
-        event.id,
-        user.id,
-        numTickets,
-        totalAmount,
-        paymentId
-      )
+      // Create order on backend
+      const orderData = await createOrder()
 
-      setStep('success')
-      setTimeout(() => {
-        onSuccess()
-      }, 3000)
-    } catch (err: any) {
-      setError(err.message || 'Failed to process booking')
+      const options: RazorpayOptions = {
+        key: razorpayConfig.key,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: razorpayConfig.company_name,
+        description: `${event.title} - ${numTickets} ticket(s)`,
+        image: razorpayConfig.image,
+        order_id: orderData.orderId,
+        handler: async (response: RazorpayResponse) => {
+          setStep('processing')
+          try {
+            // Verify payment on backend
+            const verificationResult = await verifyPayment(response, orderData.bookingId)
+            setStep('success')
+            setTimeout(() => {
+              onSuccess()
+            }, 3000)
+          } catch (verifyError: any) {
+            setError(verifyError.message)
+            setStep('details')
+          }
+        },
+        prefill: {
+          name: orderData.userName || user.email,
+          email: user.email,
+        },
+        notes: {
+          event_id: event.id,
+          user_id: user.id,
+          num_tickets: numTickets,
+        },
+        theme: razorpayConfig.theme,
+        modal: {
+          ondismiss: () => {
+            setStep('details')
+            setLoading(false)
+          },
+        },
+      }
+
+      const rzp = new window.Razorpay(options)
+      
+      rzp.on('payment.failed', (response: any) => {
+        setError(handleRazorpayError(response.error))
+        setStep('details')
+        setLoading(false)
+      })
+
+      rzp.open()
+    } catch (error: any) {
+      setError(error.message)
+      setStep('details')
     } finally {
       setLoading(false)
     }
@@ -110,9 +226,9 @@ export default function BookingForm({ event, user, onClose, onSuccess }: Booking
     <div className="space-y-6">
       <div className="text-center">
         <div className="text-4xl mb-4">💳</div>
-        <h3 className="text-2xl font-light text-white mb-2">Processing Payment</h3>
+        <h3 className="text-2xl font-light text-white mb-2">Razorpay Payment</h3>
         <div className="text-gray-400">
-          Please wait while we process your payment of ₹{totalAmount.toLocaleString()}
+          Complete your payment of ₹{totalAmount.toLocaleString()} through Razorpay
         </div>
       </div>
 
@@ -121,7 +237,23 @@ export default function BookingForm({ event, user, onClose, onSuccess }: Booking
       </div>
 
       <div className="text-center text-sm text-gray-400">
-        This is a demo. No actual payment is being processed.
+        Please complete the payment in the Razorpay popup window.
+      </div>
+    </div>
+  )
+
+  const renderProcessing = () => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <div className="text-4xl mb-4">⏳</div>
+        <h3 className="text-2xl font-light text-white mb-2">Verifying Payment</h3>
+        <div className="text-gray-400">
+          Please wait while we verify your payment and confirm your booking.
+        </div>
+      </div>
+
+      <div className="flex justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
       </div>
     </div>
   )
@@ -149,10 +281,11 @@ export default function BookingForm({ event, user, onClose, onSuccess }: Booking
         <div className="flex items-center justify-between p-6 border-b border-gray-800">
           <h2 className="text-xl font-light text-white">
             {step === 'details' && 'Book Tickets'}
-            {step === 'payment' && 'Processing Payment'}
+            {step === 'payment' && 'Complete Payment'}
+            {step === 'processing' && 'Verifying Payment'}
             {step === 'success' && 'Booking Confirmed'}
           </h2>
-          {step !== 'payment' && (
+          {(step !== 'payment' && step !== 'processing') && (
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-white text-2xl"
@@ -172,21 +305,20 @@ export default function BookingForm({ event, user, onClose, onSuccess }: Booking
 
           {step === 'details' && renderDetails()}
           {step === 'payment' && renderPayment()}
+          {step === 'processing' && renderProcessing()}
           {step === 'success' && renderSuccess()}
         </div>
 
         {/* Footer */}
         {step === 'details' && (
           <div className="p-6 border-t border-gray-800">
-            <form onSubmit={handleSubmit}>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3 bg-white text-black font-medium hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? 'Processing...' : `Pay ₹${totalAmount.toLocaleString()}`}
-              </button>
-            </form>
+            <button
+              onClick={handlePayment}
+              disabled={loading || !razorpayLoaded}
+              className="w-full py-3 bg-white text-black font-medium hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Processing...' : !razorpayLoaded ? 'Loading Payment...' : `Pay ₹${totalAmount.toLocaleString()}`}
+            </button>
           </div>
         )}
       </div>
