@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/lib/auth'
 import { validateEmail, validatePassword } from '@/lib/validation'
@@ -13,9 +13,24 @@ export default function SignIn() {
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({})
   const [showPassword, setShowPassword] = useState(false)
+  const [infoMessage, setInfoMessage] = useState('')
   
   const { signIn, user, error: authError } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  // Handle URL parameters for messages
+  useEffect(() => {
+    const message = searchParams.get('message')
+    const error = searchParams.get('error')
+    
+    if (message) {
+      setInfoMessage(message)
+    }
+    if (error) {
+      setErrors({ general: error })
+    }
+  }, [searchParams])
 
   // Redirect if already signed in
   useEffect(() => {
@@ -88,6 +103,13 @@ export default function SignIn() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Info message display */}
+          {infoMessage && (
+            <div className="bg-blue-500/10 border border-blue-500/20 text-blue-400 px-4 py-3 rounded">
+              {infoMessage}
+            </div>
+          )}
+
           {/* General error display */}
           {errors.general && (
             <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded">

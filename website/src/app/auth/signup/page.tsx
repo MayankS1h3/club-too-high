@@ -70,12 +70,21 @@ export default function SignUp() {
     }
 
     try {
-      await signUp(email, password, fullName)
-      setSuccess('Account created! Please check your email to verify your account.')
-      // Don't redirect immediately, let user read the message
-      setTimeout(() => {
-        router.push('/auth/signin')
-      }, 3000)
+      const result = await signUp(email, password, fullName)
+      if (result.error) {
+        setErrors({ general: result.error.message || 'Failed to create account' })
+      } else {
+        setSuccess('Account created successfully! Please check your email and click the confirmation link to verify your account. The email may take a few minutes to arrive.')
+        // Clear the form
+        setEmail('')
+        setPassword('')
+        setConfirmPassword('')
+        setFullName('')
+        // Don't redirect immediately, let user read the message
+        setTimeout(() => {
+          router.push('/auth/signin?message=Please check your email to confirm your account')
+        }, 5000)
+      }
     } catch (err: any) {
       setErrors({ general: err.message || 'Failed to create account' })
     } finally {

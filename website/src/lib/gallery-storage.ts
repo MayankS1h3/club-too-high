@@ -3,16 +3,6 @@ import { supabase } from './supabase'
 // Get all images directly from storage bucket
 export async function getGalleryImagesFromStorage() {
   try {
-    console.log('Fetching from gallery-images bucket...')
-    
-    // First, let's try to list all buckets to see what's available
-    try {
-      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets()
-      console.log('Available buckets:', buckets)
-    } catch (bucketsErr) {
-      console.log('Could not list buckets:', bucketsErr)
-    }
-
     // Try the main bucket name
     const { data, error } = await supabase.storage
       .from('gallery-images')
@@ -21,65 +11,46 @@ export async function getGalleryImagesFromStorage() {
         offset: 0
       })
 
-    console.log('Storage response - data:', data, 'error:', error)
-
     if (error) {
-      console.error('Storage error:', error)
       // Try alternative bucket name
-      console.log('Trying alternative bucket name...')
       const { data: altData, error: altError } = await supabase.storage
         .from('gallery_images')
         .list('', { limit: 100, offset: 0 })
       
-      console.log('Alternative bucket response - data:', altData, 'error:', altError)
-      
       if (altError) {
-        console.log('Both bucket names failed, using fallback images')
         return getFallbackImages()
       }
       
       // Use alternative data if it worked
       if (altData && altData.length > 0) {
-        console.log('Alternative bucket worked!')
         return processStorageFiles(altData, 'gallery_images')
       }
     }
 
     if (data && data.length > 0) {
-      console.log('Main bucket worked!')
       return processStorageFiles(data, 'gallery-images')
     }
     
-    console.log('No valid files found in storage, using fallback images')
     return getFallbackImages()
     
   } catch (error) {
-    console.error('Error in getGalleryImagesFromStorage:', error)
     return getFallbackImages()
   }
 }
 
 function processStorageFiles(data: any[], bucketName: string) {
-  console.log('Processing files from bucket:', bucketName)
-  
   const validFiles = data.filter(file => {
-    console.log('Checking file:', file)
     const isValid = file.name && 
                    !file.name.includes('.emptyFolderPlaceholder') &&
                    file.name !== '.emptyFolderPlaceholder'
-    console.log(`File ${file.name} is valid:`, isValid)
     return isValid
   })
-
-  console.log('Valid files found:', validFiles)
 
   if (validFiles.length > 0) {
     const images = validFiles.map(file => {
       const { data: { publicUrl } } = supabase.storage
         .from(bucketName)
         .getPublicUrl(file.name)
-      
-      console.log('Generated URL for', file.name, ':', publicUrl)
       
       return {
         id: file.name,
@@ -89,7 +60,6 @@ function processStorageFiles(data: any[], bucketName: string) {
       }
     })
 
-    console.log('Final images array from storage:', images)
     return images
   }
   
