@@ -23,9 +23,14 @@
 
 body {
   color: var(--primary-text);
-  background: #0a0a0a;
+  background: #0a0a0a !important;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   font-weight: 400;
+}
+
+/* Override any theme backgrounds */
+html, body, #__next, main {
+  background-color: #0a0a0a !important;
 }
 
 /* Typography System */
@@ -79,6 +84,10 @@ body {
   
   .bg-primary {
     @apply bg-[#0a0a0a];
+  }
+  
+  .bg-dark {
+    @apply bg-[#111111];
   }
   
   .border-secondary {

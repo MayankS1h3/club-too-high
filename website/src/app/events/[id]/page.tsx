@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { getEventById } from '@/lib/database'
 import { useAuth } from '@/lib/auth'
-import type { Event } from '@/lib/supabase'
+import type { DatabaseEvent } from '@/lib/database-types'
 import BookingForm from '@/components/BookingForm'
 import PaymentErrorBoundary from '@/components/PaymentErrorBoundary'
 import { logPaymentError } from '@/lib/error-logging'
@@ -13,7 +13,7 @@ export default function EventDetailPage() {
   const params = useParams()
   const router = useRouter()
   const { user } = useAuth()
-  const [event, setEvent] = useState<Event | null>(null)
+  const [event, setEvent] = useState<DatabaseEvent | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [showBookingForm, setShowBookingForm] = useState(false)
@@ -147,11 +147,24 @@ export default function EventDetailPage() {
               </div>
             )}
 
-            {/* Price */}
+            {/* Pricing */}
             <div className="border-t border-gray-800 pt-8">
-              <div className="text-sm font-light tracking-wide mb-2 text-gray-400">TICKET PRICE</div>
-              <div className="text-3xl font-light text-white mb-6">
-                ₹{event.ticket_price.toLocaleString()}
+              <div className="text-sm font-light tracking-wide mb-4 text-gray-400">TICKET PRICING</div>
+              
+              {/* Pricing Tiers */}
+              <div className="space-y-3 mb-6">
+                <div className="flex justify-between items-center py-2 border-b border-gray-800">
+                  <span className="text-gray-300 font-light">Women Entry</span>
+                  <span className="text-xl font-light text-white">₹{event.woman_price.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-gray-800">
+                  <span className="text-gray-300 font-light">Couple Entry</span>
+                  <span className="text-xl font-light text-white">₹{event.couple_price.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-gray-300 font-light">Stag Entry</span>
+                  <span className="text-xl font-light text-white">₹{event.stag_price.toLocaleString()}</span>
+                </div>
               </div>
 
               {/* Book Button */}

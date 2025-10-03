@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { getUpcomingEvents } from '@/lib/database'
 import { getGalleryImagesFromStorage } from '@/lib/gallery-storage'
-import type { Event } from '@/lib/supabase'
+import type { DatabaseEvent } from '@/lib/database-types'
 import Link from 'next/link'
 
 interface GalleryImageFromStorage {
@@ -14,7 +14,7 @@ interface GalleryImageFromStorage {
 }
 
 export default function Home() {
-  const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([])
+  const [upcomingEvents, setUpcomingEvents] = useState<DatabaseEvent[]>([])
   const [eventsLoading, setEventsLoading] = useState(true)
   const [eventsError, setEventsError] = useState('')
   
@@ -72,9 +72,9 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen" style={{background: '#0a0a0a'}}>
+    <div className="min-h-screen" style={{backgroundColor: '#0a0a0a'}}>
       {/* Hero Section */}
-      <div className="relative min-h-screen flex items-center justify-center overflow-hidden" style={{background: '#0a0a0a'}}>
+      <div className="relative min-h-screen flex items-center justify-center overflow-hidden" style={{backgroundColor: '#0a0a0a'}}>
         {/* Background Video */}
         <video 
           autoPlay 
@@ -110,19 +110,10 @@ export default function Home() {
             </h1>
           </div>
           
-          <p className="text-lg md:text-xl text-primary mb-12 max-w-3xl mx-auto leading-relaxed font-body">
+          <p className="text-lg md:text-xl text-primary mb-16 max-w-3xl mx-auto leading-relaxed font-body">
             Where sophistication meets energy. An exclusive sanctuary for those who demand 
             the finest in music, cuisine, and atmosphere.
           </p>
-          
-          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-            <button className="btn-primary">
-              VIEW UPCOMING EVENTS
-            </button>
-            <button className="btn-secondary">
-              BOOK A TABLE
-            </button>
-          </div>
         </div>
         
         {/* Scroll indicator */}
@@ -131,60 +122,77 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Events Preview Section */}
-      <div className="py-24" style={{background: '#0a0a0a'}}>
+      {/* Events Preview Section - Light Theme */}
+      {/* Events Section */}
+      <section className="py-20" style={{backgroundColor: '#0a0a0a'}}>
         <div className="max-w-7xl mx-auto px-4">
-          <h2 className="text-4xl md:text-5xl font-display text-center text-primary mb-16">
-            This Week's Lineup
-          </h2>
+          <div className="text-center mb-16">
+            <h2 className="text-5xl font-display text-primary mb-6">Upcoming Events</h2>
+            <p className="text-secondary text-lg max-w-2xl mx-auto">
+              Immerse yourself in extraordinary nights featuring world-class DJs, 
+              exclusive performances, and unforgettable experiences.
+            </p>
+          </div>
           
           {eventsLoading ? (
-            <div className="flex justify-center items-center py-16">
-              <div className="text-primary font-body text-lg">Loading upcoming events...</div>
-            </div>
+            <div className="text-center text-secondary text-lg">Loading events...</div>
           ) : eventsError ? (
-            <div className="flex justify-center items-center py-16">
-              <div className="text-secondary font-body text-lg">{eventsError}</div>
-            </div>
-          ) : upcomingEvents.length === 0 ? (
-            <div className="text-center py-16">
-              <div className="text-primary font-body text-lg mb-4">No upcoming events scheduled</div>
-              <div className="text-secondary font-body">Stay tuned for exciting announcements!</div>
-            </div>
+            <div className="text-center text-red-400 text-lg">Error loading events: {eventsError}</div>
           ) : (
-            <div className="grid md:grid-cols-3 gap-12">
-              {upcomingEvents.map((event, index) => (
-                <div key={event.id} className="group border border-secondary rounded-lg overflow-hidden hover:border-accent transition-all duration-300 hover:shadow-[0_0_30px_rgba(0,255,255,0.2)] hover:-translate-y-2" style={{background: '#0a0a0a'}}>
-                  <div className="aspect-[4/3] bg-secondary relative overflow-hidden">
-                    {event.poster_image_url ? (
-                      <img 
-                        src={event.poster_image_url} 
-                        alt={event.title}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <>
-                        <div className="absolute inset-0 bg-gradient-to-br from-accent/20 to-transparent"></div>
-                        <div className="absolute inset-0 flex items-center justify-center text-secondary font-display text-lg">
-                          {event.title.toUpperCase()}
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {upcomingEvents.map((event) => (
+                <div key={event.id} className="group cursor-pointer">
+                  <div className="rounded-lg overflow-hidden transition-all duration-500 hover:scale-105" 
+                       style={{
+                         backgroundColor: '#111111',
+                         border: '1px solid rgba(0, 255, 255, 0.2)'
+                       }}
+                       onMouseEnter={(e) => {
+                         e.currentTarget.style.borderColor = 'rgba(0, 255, 255, 0.6)'
+                       }}
+                       onMouseLeave={(e) => {
+                         e.currentTarget.style.borderColor = 'rgba(0, 255, 255, 0.2)'
+                       }}>
+                    <div className="flex items-center justify-center h-48" style={{backgroundColor: 'rgba(0, 255, 255, 0.1)'}}>
+                      <div className="text-6xl" style={{color: '#00FFFF'}}>♪</div>
+                    </div>
+                    <div className="p-6">
+                      <div className="text-sm font-semibold mb-2" style={{color: '#00FFFF'}}>
+                        {new Date(event.event_date).toLocaleDateString('en-US', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </div>
+                      <h3 className="text-xl font-bold mb-3 transition-colors" style={{color: '#E0E0E0'}}>
+                        {event.title}
+                      </h3>
+                      <p className="mb-4 line-clamp-3" style={{color: '#666666'}}>
+                        {event.description}
+                      </p>
+                      
+                      {/* Pricing Tiers */}
+                      <div className="mb-4 space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span style={{color: '#E0E0E0'}}>Women:</span>
+                          <span style={{color: '#00FFFF'}} className="font-semibold">₹{event.woman_price}</span>
                         </div>
-                      </>
-                    )}
-                  </div>
-                  <div className="p-6">
-                    <h3 className="text-xl font-display text-primary mb-2">{event.title}</h3>
-                    <p className="text-primary font-body mb-1">
-                      {formatDate(event.event_date)} • {formatTime(event.event_date)}
-                    </p>
-                    {event.dj_name && (
-                      <p className="text-secondary font-body italic mb-4">{event.dj_name}</p>
-                    )}
-                    <div className="flex justify-end">
-                      <Link href={`/events/${event.id}`}>
-                        <button className="btn-primary text-sm px-6 py-2">
-                          BOOK NOW
+                        <div className="flex justify-between text-sm">
+                          <span style={{color: '#E0E0E0'}}>Couple:</span>
+                          <span style={{color: '#00FFFF'}} className="font-semibold">₹{event.couple_price}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span style={{color: '#E0E0E0'}}>Stag:</span>
+                          <span style={{color: '#00FFFF'}} className="font-semibold">₹{event.stag_price}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-center">
+                        <button className="btn-primary text-sm w-full">
+                          GET TICKETS
                         </button>
-                      </Link>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -192,20 +200,14 @@ export default function Home() {
             </div>
           )}
           
-          {upcomingEvents.length > 0 && (
-            <div className="text-center mt-12">
-              <Link href="/events">
-                <button className="btn-secondary">
-                  VIEW ALL EVENTS
-                </button>
-              </Link>
-            </div>
-          )}
+          <div className="text-center mt-12">
+            <button className="btn-secondary">
+              VIEW ALL EVENTS
+            </button>
+          </div>
         </div>
-      </div>
-
-      {/* Gallery Preview Section */}
-      <div className="py-24 border-t border-secondary" style={{background: '#0a0a0a'}}>
+      </section>      {/* Gallery Preview Section */}
+      <div className="py-24 border-t" style={{backgroundColor: '#111111', borderColor: 'rgba(0, 255, 255, 0.2)'}}>
         <div className="max-w-7xl mx-auto px-4">
           <h2 className="text-4xl md:text-5xl font-display text-center text-primary mb-16">
             Glimpses From The Floor
@@ -239,7 +241,7 @@ export default function Home() {
                         className="w-full h-full object-cover"
                         loading="lazy"
                       />
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                      <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                         <div className="w-8 h-8 border-2 border-accent rounded-full flex items-center justify-center">
                           <svg className="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
@@ -260,28 +262,6 @@ export default function Home() {
               </div>
             </>
           )}
-        </div>
-      </div>
-
-      {/* CTA Section */}
-      <div className="py-24 border-t border-secondary" style={{background: '#0a0a0a'}}>
-        <div className="max-w-4xl mx-auto text-center px-4">
-          <h2 className="text-4xl md:text-6xl font-display text-primary mb-8 tracking-tight">
-            Experience
-            <br />
-            <span className="text-accent">the extraordinary</span>
-          </h2>
-          <p className="text-xl text-primary mb-12 font-body">
-            Join Jaipur's most exclusive nightlife destination.
-          </p>
-          <div className="space-y-4">
-            <button className="btn-primary">
-              MAKE RESERVATION
-            </button>
-            <div className="text-sm text-secondary font-body">
-              Call +91 XXXX XXXXXX or book online
-            </div>
-          </div>
         </div>
       </div>
     </div>

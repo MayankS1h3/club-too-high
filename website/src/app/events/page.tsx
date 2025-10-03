@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { getUpcomingEvents } from '@/lib/database'
-import type { Event } from '@/lib/supabase'
+import type { DatabaseEvent } from '@/lib/database-types'
 import Link from 'next/link'
 
 export default function EventsPage() {
-  const [events, setEvents] = useState<Event[]>([])
+  const [events, setEvents] = useState<DatabaseEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -117,17 +117,30 @@ export default function EventsPage() {
                   </h3>
 
                   {/* Description */}
-                  <p className="text-gray-400 font-light leading-relaxed mb-6 line-clamp-3">
+                  <p className="text-gray-400 font-light leading-relaxed mb-4 line-clamp-3">
                     {event.description}
                   </p>
 
-                  {/* Price & Book Button */}
-                  <div className="flex items-center justify-between">
-                    <div className="text-white font-medium">
-                      ₹{event.ticket_price.toLocaleString()}
+                  {/* Pricing Tiers */}
+                  <div className="mb-4 space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">Women:</span>
+                      <span className="text-white font-medium">₹{event.woman_price.toLocaleString()}</span>
                     </div>
-                    <Link href={`/events/${event.id}`}>
-                      <button className="px-6 py-2 border border-gray-600 text-white hover:border-white hover:bg-white hover:text-black transition-all duration-300 text-sm font-medium tracking-wide">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">Couple:</span>
+                      <span className="text-white font-medium">₹{event.couple_price.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">Stag:</span>
+                      <span className="text-white font-medium">₹{event.stag_price.toLocaleString()}</span>
+                    </div>
+                  </div>
+
+                  {/* Book Button */}
+                  <div className="flex justify-center">
+                    <Link href={`/events/${event.id}`} className="w-full">
+                      <button className="w-full px-6 py-3 border border-gray-600 text-white hover:border-white hover:bg-white hover:text-black transition-all duration-300 text-sm font-medium tracking-wide">
                         BOOK NOW
                       </button>
                     </Link>

@@ -16,7 +16,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" data-theme="clubtheme">
       <body
         className="antialiased min-h-screen flex flex-col bg-primary text-primary"
       >

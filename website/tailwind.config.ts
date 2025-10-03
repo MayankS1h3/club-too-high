@@ -17,5 +17,22 @@ const config: Config = {
   plugins: [
     require("daisyui"),
   ],
+  daisyui: {
+    themes: [
+      {
+        clubtheme: {
+          "primary": "#0a0a0a",
+          "secondary": "#111111", 
+          "accent": "#00FFFF",
+          "neutral": "#E0E0E0",
+          "base-100": "#0a0a0a",
+          "base-200": "#111111",
+          "base-300": "#1a1a1a",
+        },
+      },
+    ],
+    base: false, // Disable default themes
+    styled: false, // Disable automatic styling
+  },
 };
 export default config;

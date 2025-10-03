@@ -7,10 +7,12 @@ export interface DatabaseEvent {
   description: string | null
   event_date: string
   dj_name: string | null
-  ticket_price: number
+  woman_price: number
+  couple_price: number
+  stag_price: number
   poster_image_url: string | null
   created_at: string
-  updated_at: string
+  updated_at?: string // Make this optional since it might not exist
 }
 
 export interface DatabaseProfile {
@@ -155,13 +157,39 @@ export function validateRequiredFields(
 
 // Type guards for database responses
 export function isDatabaseEvent(data: any): data is DatabaseEvent {
-  return (
+  // Temporarily make validation more permissive for debugging
+  const isValid = (
     typeof data === 'object' &&
     typeof data.id === 'string' &&
     typeof data.title === 'string' &&
     typeof data.event_date === 'string' &&
-    typeof data.ticket_price === 'number'
+    // Make pricing validation more permissive
+    (typeof data.woman_price === 'number' || data.woman_price == null) &&
+    (typeof data.couple_price === 'number' || data.couple_price == null) &&
+    (typeof data.stag_price === 'number' || data.stag_price == null)
   )
+  
+  if (!isValid) {
+    console.log('Invalid event data - detailed debug:', {
+      rawData: data,
+      validationChecks: {
+        isObject: typeof data === 'object',
+        hasId: typeof data?.id === 'string',
+        hasTitle: typeof data?.title === 'string', 
+        hasEventDate: typeof data?.event_date === 'string',
+        hasWomanPrice: typeof data?.woman_price === 'number',
+        hasCouplePrice: typeof data?.couple_price === 'number',
+        hasStagPrice: typeof data?.stag_price === 'number'
+      },
+      actualValues: {
+        woman_price: data?.woman_price,
+        couple_price: data?.couple_price,
+        stag_price: data?.stag_price
+      }
+    })
+  }
+  
+  return isValid
 }
 
 export function isDatabaseProfile(data: any): data is DatabaseProfile {

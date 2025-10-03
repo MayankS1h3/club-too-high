@@ -18,7 +18,9 @@ export type Event = {
   title: string
   event_date: string
   dj_name: string | null
-  ticket_price: number
+  woman_price: number
+  couple_price: number
+  stag_price: number
   poster_image_url: string | null
   description: string | null
   created_at: string

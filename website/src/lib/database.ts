@@ -33,13 +33,18 @@ export async function getUpcomingEvents(): Promise<DatabaseEvent[]> {
     if (!Array.isArray(data)) {
       throw new Error('Invalid response format')
     }
+
+    // Handle empty results gracefully
+    if (data.length === 0) {
+      return []
+    }
     
     // Type validation for each event
     const validatedData = data.filter(isDatabaseEvent)
     if (validatedData.length !== data.length) {
-      console.warn('Some events had invalid data structure')
+      console.warn(`Some events had invalid data structure. Expected ${data.length}, got ${validatedData.length} valid events.`)
     }
-    
+
     return validatedData
   } catch (error) {
     handleDatabaseError(error)
