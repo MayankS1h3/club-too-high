@@ -75,16 +75,27 @@ export default function Home() {
     <div className="min-h-screen" style={{background: '#0a0a0a'}}>
       {/* Hero Section */}
       <div className="relative min-h-screen flex items-center justify-center overflow-hidden" style={{background: '#0a0a0a'}}>
-        {/* Background with dark overlay for video placeholder */}
-        <div className="absolute inset-0" style={{background: '#0a0a0a'}}>
-          {/* Dark overlay for text readability */}
-          <div className="absolute inset-0 bg-black/50"></div>
-          {/* Subtle grid pattern for visual interest */}
-          <div className="absolute inset-0 opacity-5" style={{
-            backgroundImage: `radial-gradient(circle at 1px 1px, #00FFFF 1px, transparent 0)`,
-            backgroundSize: '50px 50px'
-          }}></div>
-        </div>
+        {/* Background Video */}
+        <video 
+          autoPlay 
+          loop 
+          muted 
+          playsInline
+          className="absolute inset-0 hero-video"
+        >
+          <source src="/home-page-video.mp4" type="video/mp4" />
+          {/* Fallback for browsers that don't support video */}
+          Your browser does not support the video tag.
+        </video>
+        
+        {/* Dark overlay for text readability */}
+        <div className="absolute inset-0 bg-black/60"></div>
+        
+        {/* Subtle grid pattern for extra visual interest */}
+        <div className="absolute inset-0 opacity-5" style={{
+          backgroundImage: `radial-gradient(circle at 1px 1px, #00FFFF 1px, transparent 0)`,
+          backgroundSize: '50px 50px'
+        }}></div>
         
         {/* Hero Content */}
         <div className="relative z-10 text-center text-primary px-4 max-w-6xl mx-auto">
