@@ -6,6 +6,8 @@ import { getEventById } from '@/lib/database'
 import { useAuth } from '@/lib/auth'
 import type { Event } from '@/lib/supabase'
 import BookingForm from '@/components/BookingForm'
+import PaymentErrorBoundary from '@/components/PaymentErrorBoundary'
+import { logPaymentError } from '@/lib/error-logging'
 
 export default function EventDetailPage() {
   const params = useParams()
@@ -170,15 +172,17 @@ export default function EventDetailPage() {
 
       {/* Booking Form Modal */}
       {showBookingForm && event && user && (
-        <BookingForm
-          event={event}
-          user={user}
-          onClose={() => setShowBookingForm(false)}
-          onSuccess={() => {
-            setShowBookingForm(false)
-            // Could redirect to booking confirmation or show success message
-          }}
-        />
+        <PaymentErrorBoundary onPaymentError={(error) => logPaymentError(error, { eventId: event.id, userId: user.id })}>
+          <BookingForm
+            event={event}
+            user={user}
+            onClose={() => setShowBookingForm(false)}
+            onSuccess={() => {
+              setShowBookingForm(false)
+              // Could redirect to booking confirmation or show success message
+            }}
+          />
+        </PaymentErrorBoundary>
       )}
     </div>
   )
