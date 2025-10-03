@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import type { Event, GalleryImage, Booking } from './supabase'
+import type { Event, Booking } from './supabase'
 import {
   DatabaseEvent,
   DatabaseProfile,
@@ -8,7 +8,6 @@ import {
   CreateBookingInput,
   UpdateBookingPaymentInput,
   UpdateProfileInput,
-  DatabaseGalleryImage,
   handleDatabaseError,
   validateRequiredFields,
   validateCreateBookingInput,
@@ -69,17 +68,6 @@ export async function getEventById(id: string): Promise<DatabaseEvent> {
   } catch (error) {
     handleDatabaseError(error)
   }
-}
-
-// Gallery
-export async function getGalleryImages() {
-  const { data, error } = await supabase
-    .from('gallery_images')
-    .select('*')
-    .order('created_at', { ascending: false })
-  
-  if (error) throw error
-  return data as GalleryImage[]
 }
 
 // Bookings

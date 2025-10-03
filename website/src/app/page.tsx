@@ -2,13 +2,25 @@
 
 import { useState, useEffect } from 'react'
 import { getUpcomingEvents } from '@/lib/database'
+import { getGalleryImagesFromStorage } from '@/lib/gallery-storage'
 import type { Event } from '@/lib/supabase'
 import Link from 'next/link'
+
+interface GalleryImageFromStorage {
+  id: string
+  image_url: string
+  caption: string
+  created_at: string
+}
 
 export default function Home() {
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([])
   const [eventsLoading, setEventsLoading] = useState(true)
   const [eventsError, setEventsError] = useState('')
+  
+  const [galleryImages, setGalleryImages] = useState<GalleryImageFromStorage[]>([])
+  const [galleryLoading, setGalleryLoading] = useState(true)
+  const [galleryError, setGalleryError] = useState('')
 
   useEffect(() => {
     async function loadUpcomingEvents() {
@@ -24,7 +36,21 @@ export default function Home() {
       }
     }
 
+    async function loadGalleryImages() {
+      try {
+        const images = await getGalleryImagesFromStorage()
+        // Limit to 4 images for homepage preview
+        setGalleryImages(images.slice(0, 4))
+      } catch (err: any) {
+        console.error('Failed to load gallery images:', err)
+        setGalleryError('Failed to load gallery')
+      } finally {
+        setGalleryLoading(false)
+      }
+    }
+
     loadUpcomingEvents()
+    loadGalleryImages()
   }, [])
 
   const formatDate = (dateString: string) => {
@@ -174,73 +200,55 @@ export default function Home() {
             Glimpses From The Floor
           </h2>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
-            {/* Gallery Image 1 */}
-            <div className="group relative aspect-square bg-secondary rounded-lg overflow-hidden cursor-pointer hover:scale-105 transition-all duration-300">
-              <div className="absolute inset-0 bg-gradient-to-br from-accent/20 to-transparent"></div>
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                <div className="w-8 h-8 border-2 border-accent rounded-full flex items-center justify-center">
-                  <svg className="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                  </svg>
-                </div>
-              </div>
-              <div className="absolute inset-0 flex items-center justify-center text-secondary font-body text-sm">
-                GALLERY IMAGE
-              </div>
+          {galleryLoading ? (
+            <div className="flex justify-center items-center py-16">
+              <div className="text-primary font-body text-lg">Loading gallery...</div>
             </div>
-            
-            {/* Gallery Image 2 */}
-            <div className="group relative aspect-[3/4] bg-secondary rounded-lg overflow-hidden cursor-pointer hover:scale-105 transition-all duration-300">
-              <div className="absolute inset-0 bg-gradient-to-br from-accent/20 to-transparent"></div>
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                <div className="w-8 h-8 border-2 border-accent rounded-full flex items-center justify-center">
-                  <svg className="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                  </svg>
-                </div>
-              </div>
-              <div className="absolute inset-0 flex items-center justify-center text-secondary font-body text-sm">
-                GALLERY IMAGE
-              </div>
+          ) : galleryError ? (
+            <div className="flex justify-center items-center py-16">
+              <div className="text-secondary font-body text-lg">{galleryError}</div>
             </div>
-            
-            {/* Gallery Image 3 */}
-            <div className="group relative aspect-[4/3] bg-secondary rounded-lg overflow-hidden cursor-pointer hover:scale-105 transition-all duration-300">
-              <div className="absolute inset-0 bg-gradient-to-br from-accent/20 to-transparent"></div>
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                <div className="w-8 h-8 border-2 border-accent rounded-full flex items-center justify-center">
-                  <svg className="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                  </svg>
-                </div>
-              </div>
-              <div className="absolute inset-0 flex items-center justify-center text-secondary font-body text-sm">
-                GALLERY IMAGE
-              </div>
+          ) : galleryImages.length === 0 ? (
+            <div className="text-center py-16">
+              <div className="text-primary font-body text-lg mb-4">Gallery coming soon</div>
+              <div className="text-secondary font-body">Stay tuned for amazing photos!</div>
             </div>
-            
-            {/* Gallery Image 4 */}
-            <div className="group relative aspect-square bg-secondary rounded-lg overflow-hidden cursor-pointer hover:scale-105 transition-all duration-300">
-              <div className="absolute inset-0 bg-gradient-to-br from-accent/20 to-transparent"></div>
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                <div className="w-8 h-8 border-2 border-accent rounded-full flex items-center justify-center">
-                  <svg className="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                  </svg>
-                </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+                {galleryImages.map((image, index) => (
+                  <Link href="/gallery" key={image.id}>
+                    <div className="group relative overflow-hidden rounded-lg cursor-pointer hover:scale-105 transition-all duration-300"
+                         style={{
+                           aspectRatio: index % 4 === 1 ? '3/4' : index % 4 === 2 ? '4/3' : '1/1'
+                         }}>
+                      <img 
+                        src={image.image_url} 
+                        alt={image.caption || 'Gallery image'}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                        <div className="w-8 h-8 border-2 border-accent rounded-full flex items-center justify-center">
+                          <svg className="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
               </div>
-              <div className="absolute inset-0 flex items-center justify-center text-secondary font-body text-sm">
-                GALLERY IMAGE
+              
+              <div className="text-center">
+                <Link href="/gallery">
+                  <button className="btn-secondary">
+                    VIEW FULL GALLERY
+                  </button>
+                </Link>
               </div>
-            </div>
-          </div>
-          
-          <div className="text-center">
-            <button className="btn-secondary">
-              VIEW FULL GALLERY
-            </button>
-          </div>
+            </>
+          )}
         </div>
       </div>
 
