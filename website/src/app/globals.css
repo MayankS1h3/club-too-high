@@ -1,21 +1,75 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Club Too High Design System */
+  --primary-bg: #0a0a0a;
+  --accent-cyan: #00FFFF;
+  --primary-text: #E0E0E0;
+  --secondary-text: #666666;
+  --overlay-dark: rgba(0, 0, 0, 0.8);
+  
+  /* Spacing System */
+  --spacing-xs: 8px;
+  --spacing-sm: 16px;
+  --spacing-md: 24px;
+  --spacing-lg: 48px;
+  --spacing-xl: 64px;
+  --spacing-2xl: 96px;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--primary-text);
+  background: #0a0a0a;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-weight: 400;
+}
+
+/* Typography System */
+.font-display {
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-weight: 700;
+}
+
+.font-body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-weight: 400;
+}
+
+/* Button System */
+@layer components {
+  .btn-primary {
+    @apply bg-[#00FFFF] text-[#0a0a0a] px-8 py-4 font-medium tracking-wide transition-all duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(0,255,255,0.5)] font-body;
+  }
+  
+  .btn-secondary {
+    @apply bg-transparent border border-[#00FFFF] text-[#00FFFF] px-8 py-4 font-medium tracking-wide transition-all duration-300 hover:bg-[#00FFFF] hover:text-[#0a0a0a] hover:shadow-[0_0_20px_rgba(0,255,255,0.3)] font-body;
+  }
+  
+  .text-primary {
+    @apply text-[#E0E0E0];
+  }
+  
+  .text-secondary {
+    @apply text-[#666666];
+  }
+  
+  .text-accent {
+    @apply text-[#00FFFF];
+  }
+  
+  .bg-primary {
+    @apply bg-[#0a0a0a];
+  }
+  
+  .border-secondary {
+    @apply border-[#666666];
+  }
+  
+  .border-accent {
+    @apply border-[#00FFFF];
+  }
 }
