@@ -75,18 +75,25 @@ export default function Home() {
     <div className="min-h-screen" style={{backgroundColor: '#0a0a0a'}}>
       {/* Hero Section */}
       <div className="relative min-h-screen flex items-center justify-center overflow-hidden" style={{backgroundColor: '#0a0a0a'}}>
-        {/* Background Video */}
+        {/* Background Video from Cloudinary */}
         <video 
           autoPlay 
           loop 
           muted 
           playsInline
           className="absolute inset-0 hero-video"
+          onError={(e) => {
+            console.log('Video failed to load from Cloudinary');
+            e.currentTarget.style.display = 'none';
+          }}
         >
-          <source src="/home-page-video-compressed.mp4" type="video/mp4" />
+          <source src="https://res.cloudinary.com/dojbcrpp0/video/upload/v1759562630/2022395-hd_1920_1080_30fps_ipdste.mp4" type="video/mp4" />
           {/* Fallback for browsers that don't support video */}
           Your browser does not support the video tag.
         </video>
+        
+        {/* Fallback gradient background when video fails */}
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900"></div>
         
         {/* Dark overlay for text readability */}
         <div className="absolute inset-0 bg-black/60"></div>
