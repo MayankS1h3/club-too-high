@@ -184,11 +184,11 @@ export default function EventDetailPage() {
       </div>
 
       {/* Booking Form Modal */}
-      {showBookingForm && event && user && (
+      {showBookingForm && event && user && user.email && (
         <PaymentErrorBoundary onPaymentError={(error) => logPaymentError(error, { eventId: event.id, userId: user.id })}>
           <BookingForm
             event={event}
-            user={user}
+            user={user as { id: string; email: string }}
             onClose={() => setShowBookingForm(false)}
             onSuccess={() => {
               setShowBookingForm(false)
