@@ -1,6 +1,8 @@
 // Duplicate payment protection system
 // Prevents multiple payments for the same booking and detects fraudulent attempts
 
+import { CONFIG } from './config'
+
 interface PaymentAttempt {
   userId: string
   eventId: string
@@ -25,7 +27,7 @@ export function checkDuplicatePayment(
   userId: string,
   eventId: string,
   amount: number,
-  timeWindowMs: number = 300000 // 5 minutes
+  timeWindowMs: number = CONFIG.PAYMENT.DUPLICATE_WINDOW_MS
 ): {
   isDuplicate: boolean
   existingAttempt?: PaymentAttempt
@@ -60,7 +62,7 @@ export function checkDuplicatePayment(
       }
       
       // If previous attempt failed recently, allow retry but log it
-      if (existingAttempt.status === 'failed' && timeDiff < 30000) { // 30 seconds
+      if (existingAttempt.status === 'failed' && timeDiff < CONFIG.PAYMENT.RETRY_DELAY_MS) {
         return {
           isDuplicate: true,
           existingAttempt,
@@ -118,7 +120,7 @@ export function updatePaymentAttemptStatus(
     else if (status === 'failed') {
       setTimeout(() => {
         paymentAttempts.delete(key)
-      }, 60000) // Remove failed attempt after 1 minute
+      }, CONFIG.PAYMENT.FAILED_ATTEMPT_CLEANUP_MS)
     }
     // Update the attempt
     else {
@@ -139,7 +141,7 @@ export function detectSuspiciousPaymentPattern(
 } {
   const reasons: string[] = []
   const now = Date.now()
-  const oneHour = 3600000
+  const oneHour = CONFIG.PAYMENT.STATS_WINDOW_MS
   
   // Check for multiple attempts for different events by same user in short time
   const userAttempts = Array.from(paymentAttempts.values())
@@ -148,7 +150,7 @@ export function detectSuspiciousPaymentPattern(
       now - attempt.timestamp < oneHour
     )
   
-  if (userAttempts.length > 5) {
+  if (userAttempts.length > CONFIG.SECURITY.MULTIPLE_ATTEMPTS_THRESHOLD) {
     reasons.push('Multiple payment attempts in short time period')
   }
   
@@ -159,12 +161,12 @@ export function detectSuspiciousPaymentPattern(
       now - attempt.timestamp < oneHour
     )
   
-  if (sameAmountAttempts.length > 10) {
+  if (sameAmountAttempts.length > CONFIG.SECURITY.SAME_AMOUNT_ATTEMPTS_THRESHOLD) {
     reasons.push('Same amount attempted by multiple users (possible card testing)')
   }
   
   // Check for round number amounts (common in fraud)
-  if (amount % 1000 === 0 && amount > 5000) {
+  if (amount % CONFIG.SECURITY.ROUND_AMOUNT_THRESHOLD === 0 && amount > CONFIG.SECURITY.SUSPICIOUS_AMOUNT_THRESHOLD) {
     reasons.push('Round number amount (potentially suspicious)')
   }
   
@@ -190,7 +192,7 @@ export function getPaymentAttemptStats(): {
   recentAttempts: number
 } {
   const now = Date.now()
-  const oneHour = 3600000
+  const oneHour = CONFIG.PAYMENT.STATS_WINDOW_MS
   
   const attempts = Array.from(paymentAttempts.values())
   
@@ -206,7 +208,7 @@ export function getPaymentAttemptStats(): {
 // Cleanup old payment attempts (call periodically)
 export function cleanupPaymentAttempts(): void {
   const now = Date.now()
-  const sixHours = 21600000 // 6 hours
+  const sixHours = CONFIG.PAYMENT.OLD_ATTEMPT_CLEANUP_MS
   
   // Remove old pending/processing attempts
   for (const [key, attempt] of paymentAttempts.entries()) {
@@ -216,16 +218,13 @@ export function cleanupPaymentAttempts(): void {
   }
   
   // Keep completed payments for longer (24 hours) then remove
-  const oneDayAgo = now - 86400000
-  for (const key of completedPayments) {
-    // This is a simple cleanup - in production you'd want to move to permanent storage
-    // For now, we'll keep them indefinitely for security
-  }
+  // In production, you'd want to move to permanent storage
+  // For now, we'll keep them indefinitely for security
 }
 
 // Set up periodic cleanup
 if (typeof setInterval !== 'undefined') {
-  setInterval(cleanupPaymentAttempts, 600000) // Every 10 minutes
+  setInterval(cleanupPaymentAttempts, CONFIG.PAYMENT.CLEANUP_INTERVAL_MS)
 }
 
 // Razorpay order deduplication
@@ -249,7 +248,7 @@ export function checkDuplicateRazorpayOrder(
   const existing = razorpayOrders.get(key)
   
   if (existing) {
-    const fiveMinutes = 300000
+    const fiveMinutes = CONFIG.PAYMENT.DUPLICATE_WINDOW_MS
     const now = Date.now()
     
     // If order was created in last 5 minutes, consider it duplicate
@@ -283,5 +282,5 @@ export function registerRazorpayOrder(
   // Cleanup after 1 hour
   setTimeout(() => {
     razorpayOrders.delete(key)
-  }, 3600000)
+  }, CONFIG.PAYMENT.ORDER_CLEANUP_MS)
 }

@@ -1,6 +1,8 @@
 // Input validation utilities for API routes
 // This file provides comprehensive validation functions to prevent injection attacks and ensure data integrity
 
+import { CONFIG } from './config'
+
 export interface ValidationError {
   field: string
   message: string
@@ -45,7 +47,7 @@ export function validateEmail(email: string): ValidationResult {
   }
 
   // Length validation
-  if (email.length > 254) {
+  if (email.length > CONFIG.VALIDATION.MAX_EMAIL_LENGTH) {
     result.addError('email', 'Email is too long')
   }
 
@@ -61,11 +63,11 @@ export function validatePassword(password: string): ValidationResult {
     return result
   }
 
-  if (password.length < 8) {
-    result.addError('password', 'Password must be at least 8 characters long')
+  if (password.length < CONFIG.VALIDATION.MIN_PASSWORD_LENGTH) {
+    result.addError('password', `Password must be at least ${CONFIG.VALIDATION.MIN_PASSWORD_LENGTH} characters long`)
   }
 
-  if (password.length > 128) {
+  if (password.length > CONFIG.VALIDATION.MAX_PASSWORD_LENGTH) {
     result.addError('password', 'Password is too long')
   }
 
@@ -150,7 +152,7 @@ export function validateString(value: any, minLength?: number, maxLength?: numbe
 
 // Payment amount validation
 export function validatePaymentAmount(amount: any): ValidationResult {
-  const result = validateNumber(amount, 1, 100000) // Min ₹1, Max ₹100,000
+  const result = validateNumber(amount, CONFIG.VALIDATION.MIN_PAYMENT_AMOUNT, CONFIG.VALIDATION.MAX_PAYMENT_AMOUNT)
   
   if (!result.isValid) {
     return result
@@ -168,7 +170,7 @@ export function validatePaymentAmount(amount: any): ValidationResult {
 
 // Ticket quantity validation
 export function validateTicketQuantity(quantity: any): ValidationResult {
-  const result = validateNumber(quantity, 1, 10) // Min 1, Max 10 tickets
+  const result = validateNumber(quantity, CONFIG.VALIDATION.MIN_TICKET_QUANTITY, CONFIG.VALIDATION.MAX_TICKET_QUANTITY)
   
   if (!result.isValid) {
     return result
@@ -186,7 +188,7 @@ export function validateTicketQuantity(quantity: any): ValidationResult {
 
 // Full name validation
 export function validateFullName(name: string): ValidationResult {
-  const result = validateString(name, 2, 100)
+  const result = validateString(name, CONFIG.VALIDATION.MIN_NAME_LENGTH, CONFIG.VALIDATION.MAX_NAME_LENGTH)
   
   if (!result.isValid) {
     return result
@@ -202,12 +204,12 @@ export function validateFullName(name: string): ValidationResult {
 
 // Event title validation
 export function validateEventTitle(title: string): ValidationResult {
-  return validateString(title, 3, 100)
+  return validateString(title, CONFIG.VALIDATION.MIN_EVENT_TITLE_LENGTH, CONFIG.VALIDATION.MAX_EVENT_TITLE_LENGTH)
 }
 
 // Event description validation
 export function validateEventDescription(description: string): ValidationResult {
-  return validateString(description, 10, 1000)
+  return validateString(description, CONFIG.VALIDATION.MIN_EVENT_DESCRIPTION_LENGTH, CONFIG.VALIDATION.MAX_EVENT_DESCRIPTION_LENGTH)
 }
 
 // Full name validation

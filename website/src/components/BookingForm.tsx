@@ -1,26 +1,52 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createBooking } from '@/lib/database'
 import { razorpayConfig, handleRazorpayError } from '@/lib/razorpay'
-import type { Event } from '@/lib/supabase'
+import type { DatabaseEvent } from '@/lib/database-types'
 import type { RazorpayOptions, RazorpayResponse } from '@/lib/razorpay'
+import { ErrorBoundary } from './ErrorBoundary'
+import { CONFIG } from '@/lib/config'
+import { 
+  PaymentCreateOrderRequest, 
+  PaymentCreateOrderResponse,
+  PaymentVerifyRequest,
+  PaymentVerifyResponse,
+  TicketType
+} from '@/lib/api-types'
 
 interface BookingFormProps {
-  event: Event
-  user: any
+  event: DatabaseEvent
+  user: {
+    id: string
+    email: string
+  }
   onClose: () => void
   onSuccess: () => void
 }
 
 export default function BookingForm({ event, user, onClose, onSuccess }: BookingFormProps) {
   const [numTickets, setNumTickets] = useState(1)
+  const [ticketType, setTicketType] = useState<TicketType>('women')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [step, setStep] = useState<'details' | 'payment' | 'processing' | 'success'>('details')
   const [razorpayLoaded, setRazorpayLoaded] = useState(false)
 
-  const totalAmount = event.ticket_price * numTickets
+  // Calculate price based on selected ticket type
+  const getTicketPrice = () => {
+    switch (ticketType) {
+      case 'women':
+        return event.woman_price
+      case 'couple':
+        return event.couple_price
+      case 'stag':
+        return event.stag_price
+      default:
+        return event.woman_price
+    }
+  }
+
+  const totalAmount = getTicketPrice() * numTickets
 
   // Load Razorpay script
   useEffect(() => {
@@ -44,19 +70,21 @@ export default function BookingForm({ event, user, onClose, onSuccess }: Booking
     }
   }, [])
 
-  const createOrder = async () => {
+  const createOrder = async (): Promise<PaymentCreateOrderResponse> => {
     try {
+      const requestBody: PaymentCreateOrderRequest = {
+        eventId: event.id,
+        userId: user.id,
+        numTickets,
+        totalAmount,
+      }
+
       const response = await fetch('/api/payment/create-order', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          eventId: event.id,
-          userId: user.id,
-          numTickets,
-          totalAmount,
-        }),
+        body: JSON.stringify(requestBody),
       })
 
       const data = await response.json()
@@ -65,23 +93,26 @@ export default function BookingForm({ event, user, onClose, onSuccess }: Booking
         throw new Error(data.error || 'Failed to create order')
       }
 
-      return data
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to create payment order')
+      return data as PaymentCreateOrderResponse
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create payment order'
+      throw new Error(errorMessage)
     }
   }
 
-  const verifyPayment = async (paymentData: RazorpayResponse, bookingId: string) => {
+  const verifyPayment = async (paymentData: RazorpayResponse, bookingId: string): Promise<PaymentVerifyResponse> => {
     try {
+      const requestBody: PaymentVerifyRequest = {
+        ...paymentData,
+        bookingId,
+      }
+
       const response = await fetch('/api/payment/verify', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...paymentData,
-          bookingId,
-        }),
+        body: JSON.stringify(requestBody),
       })
 
       const data = await response.json()
@@ -90,9 +121,10 @@ export default function BookingForm({ event, user, onClose, onSuccess }: Booking
         throw new Error(data.error || 'Payment verification failed')
       }
 
-      return data
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to verify payment')
+      return data as PaymentVerifyResponse
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to verify payment'
+      throw new Error(errorMessage)
     }
   }
 
@@ -122,13 +154,14 @@ export default function BookingForm({ event, user, onClose, onSuccess }: Booking
           setStep('processing')
           try {
             // Verify payment on backend
-            const verificationResult = await verifyPayment(response, orderData.bookingId)
+            await verifyPayment(response, orderData.bookingId)
             setStep('success')
             setTimeout(() => {
               onSuccess()
-            }, 3000)
-          } catch (verifyError: any) {
-            setError(verifyError.message)
+            }, CONFIG.UI.SUCCESS_REDIRECT_DELAY_MS)
+          } catch (verifyError: unknown) {
+            const errorMessage = verifyError instanceof Error ? verifyError.message : 'Payment verification failed'
+            setError(errorMessage)
             setStep('details')
           }
         },
@@ -152,15 +185,16 @@ export default function BookingForm({ event, user, onClose, onSuccess }: Booking
 
       const rzp = new window.Razorpay(options)
       
-      rzp.on('payment.failed', (response: any) => {
+      rzp.on('payment.failed', (response: { error: unknown }) => {
         setError(handleRazorpayError(response.error))
         setStep('details')
         setLoading(false)
       })
 
       rzp.open()
-    } catch (error: any) {
-      setError(error.message)
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Payment initialization failed'
+      setError(errorMessage)
       setStep('details')
     } finally {
       setLoading(false)
@@ -178,6 +212,50 @@ export default function BookingForm({ event, user, onClose, onSuccess }: Booking
             month: 'long',
             day: 'numeric'
           })}
+        </div>
+      </div>
+
+      <div className="border-t border-gray-800 pt-6">
+        <label className="block text-sm font-medium text-gray-300 mb-4">
+          Ticket Type
+        </label>
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          <button
+            type="button"
+            onClick={() => setTicketType('women')}
+            className={`p-3 border rounded-lg text-center transition-colors ${
+              ticketType === 'women'
+                ? 'border-white bg-white text-black'
+                : 'border-gray-600 text-white hover:border-white'
+            }`}
+          >
+            <div className="font-medium">Women</div>
+            <div className="text-sm mt-1">₹{event.woman_price.toLocaleString()}</div>
+          </button>
+          <button
+            type="button"
+            onClick={() => setTicketType('couple')}
+            className={`p-3 border rounded-lg text-center transition-colors ${
+              ticketType === 'couple'
+                ? 'border-white bg-white text-black'
+                : 'border-gray-600 text-white hover:border-white'
+            }`}
+          >
+            <div className="font-medium">Couple</div>
+            <div className="text-sm mt-1">₹{event.couple_price.toLocaleString()}</div>
+          </button>
+          <button
+            type="button"
+            onClick={() => setTicketType('stag')}
+            className={`p-3 border rounded-lg text-center transition-colors ${
+              ticketType === 'stag'
+                ? 'border-white bg-white text-black'
+                : 'border-gray-600 text-white hover:border-white'
+            }`}
+          >
+            <div className="font-medium">Stag</div>
+            <div className="text-sm mt-1">₹{event.stag_price.toLocaleString()}</div>
+          </button>
         </div>
       </div>
 
@@ -207,8 +285,8 @@ export default function BookingForm({ event, user, onClose, onSuccess }: Booking
 
       <div className="border-t border-gray-800 pt-6">
         <div className="flex justify-between items-center mb-2">
-          <span className="text-gray-300">Ticket Price</span>
-          <span className="text-white">₹{event.ticket_price.toLocaleString()}</span>
+          <span className="text-gray-300">Ticket Price ({ticketType})</span>
+          <span className="text-white">₹{getTicketPrice().toLocaleString()}</span>
         </div>
         <div className="flex justify-between items-center mb-2">
           <span className="text-gray-300">Quantity</span>
@@ -275,8 +353,27 @@ export default function BookingForm({ event, user, onClose, onSuccess }: Booking
   )
 
   return (
-    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-      <div className="bg-gray-900 max-w-md w-full rounded-lg">
+    <ErrorBoundary
+      fallback={
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-900 max-w-md w-full rounded-lg p-6 text-center">
+            <div className="text-red-400 mb-4">Something went wrong with the payment form</div>
+            <button 
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600"
+            >
+              Close and Try Again
+            </button>
+          </div>
+        </div>
+      }
+      onError={(error: Error, errorInfo: React.ErrorInfo) => {
+        console.error('BookingForm Error:', error, errorInfo)
+        // You can add error reporting service here later
+      }}
+    >
+      <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+        <div className="bg-gray-900 max-w-md w-full rounded-lg">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-800">
           <h2 className="text-xl font-light text-white">
@@ -321,7 +418,8 @@ export default function BookingForm({ event, user, onClose, onSuccess }: Booking
             </button>
           </div>
         )}
+        </div>
       </div>
-    </div>
+    </ErrorBoundary>
   )
 }

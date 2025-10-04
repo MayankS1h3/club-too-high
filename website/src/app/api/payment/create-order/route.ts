@@ -1,6 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { createRazorpayOrder } from '@/lib/razorpay-server'
-import { createBooking } from '@/lib/database'
 import { supabase } from '@/lib/supabase'
 import { 
   validateUUID, 
@@ -28,6 +27,10 @@ import {
   checkDuplicateRazorpayOrder,
   registerRazorpayOrder
 } from '@/lib/payment-protection'
+import {
+  isPaymentCreateOrderRequest,
+  validateApiRequest
+} from '@/lib/api-types'
 
 export async function POST(request: NextRequest) {
   try {
@@ -70,7 +73,13 @@ export async function POST(request: NextRequest) {
       return createErrorResponse(bodyResult.error!, 400)
     }
 
-    const { eventId, userId, numTickets, totalAmount } = bodyResult.data
+    // Type-safe validation
+    const validatedRequest = validateApiRequest(bodyResult.data, isPaymentCreateOrderRequest)
+    if (!validatedRequest.isValid) {
+      return createErrorResponse('Invalid request format', 400, validatedRequest.errors)
+    }
+
+    const { eventId, userId, numTickets, totalAmount } = validatedRequest.data
 
     // Comprehensive input validation
     const validationResults = [
@@ -164,7 +173,7 @@ export async function POST(request: NextRequest) {
     const receipt = `CTH_${eventId}_${userId}_${Date.now()}`
 
     // Register payment attempt
-    const paymentAttemptKey = registerPaymentAttempt(userId, eventId, totalAmount)
+    registerPaymentAttempt(userId, eventId, totalAmount)
 
     try {
       // Create Razorpay order

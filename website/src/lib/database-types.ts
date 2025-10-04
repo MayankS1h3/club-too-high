@@ -157,39 +157,15 @@ export function validateRequiredFields(
 
 // Type guards for database responses
 export function isDatabaseEvent(data: any): data is DatabaseEvent {
-  // Temporarily make validation more permissive for debugging
-  const isValid = (
+  return (
     typeof data === 'object' &&
     typeof data.id === 'string' &&
     typeof data.title === 'string' &&
     typeof data.event_date === 'string' &&
-    // Make pricing validation more permissive
-    (typeof data.woman_price === 'number' || data.woman_price == null) &&
-    (typeof data.couple_price === 'number' || data.couple_price == null) &&
-    (typeof data.stag_price === 'number' || data.stag_price == null)
+    typeof data.woman_price === 'number' &&
+    typeof data.couple_price === 'number' &&
+    typeof data.stag_price === 'number'
   )
-  
-  if (!isValid) {
-    console.log('Invalid event data - detailed debug:', {
-      rawData: data,
-      validationChecks: {
-        isObject: typeof data === 'object',
-        hasId: typeof data?.id === 'string',
-        hasTitle: typeof data?.title === 'string', 
-        hasEventDate: typeof data?.event_date === 'string',
-        hasWomanPrice: typeof data?.woman_price === 'number',
-        hasCouplePrice: typeof data?.couple_price === 'number',
-        hasStagPrice: typeof data?.stag_price === 'number'
-      },
-      actualValues: {
-        woman_price: data?.woman_price,
-        couple_price: data?.couple_price,
-        stag_price: data?.stag_price
-      }
-    })
-  }
-  
-  return isValid
 }
 
 export function isDatabaseProfile(data: any): data is DatabaseProfile {

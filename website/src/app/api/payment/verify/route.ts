@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyRazorpaySignature } from '@/lib/razorpay-server'
-import { updateBookingPaymentStatus } from '@/lib/database'
 import { supabase } from '@/lib/supabase'
 import { validateUUID, validateString, combineValidationResults } from '@/lib/validation'
 import { 
   parseJsonBody, 
-  createErrorResponse, 
-  createSuccessResponse,
+  createErrorResponse,
   getClientIP,
   validateMethod
 } from '@/lib/api-helpers'
@@ -15,8 +13,9 @@ import {
   detectSuspiciousActivity
 } from '@/lib/rate-limiting'
 import {
-  updatePaymentAttemptStatus
-} from '@/lib/payment-protection'
+  isPaymentVerifyRequest,
+  validateApiRequest
+} from '@/lib/api-types'
 
 export async function POST(request: NextRequest) {
   try {
@@ -59,12 +58,18 @@ export async function POST(request: NextRequest) {
       return createErrorResponse(bodyResult.error!, 400)
     }
 
+    // Type-safe validation
+    const validatedRequest = validateApiRequest(bodyResult.data, isPaymentVerifyRequest)
+    if (!validatedRequest.isValid) {
+      return createErrorResponse('Invalid request format', 400, validatedRequest.errors)
+    }
+
     const {
       razorpay_payment_id,
       razorpay_order_id,
       razorpay_signature,
       bookingId
-    } = bodyResult.data
+    } = validatedRequest.data
 
     // Comprehensive input validation
     const validationResults = [
