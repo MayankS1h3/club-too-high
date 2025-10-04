@@ -83,9 +83,12 @@ export default function Home() {
           playsInline
           className="absolute inset-0 hero-video"
           onError={(e) => {
-            console.log('Video failed to load from Cloudinary');
+            console.error('Video failed to load from Cloudinary:', e);
             e.currentTarget.style.display = 'none';
           }}
+          onLoadStart={() => console.log('Video started loading')}
+          onCanPlay={() => console.log('Video can play')}
+          onLoadedData={() => console.log('Video loaded')}
         >
           <source src="https://res.cloudinary.com/dojbcrpp0/video/upload/v1759562630/2022395-hd_1920_1080_30fps_ipdste.mp4" type="video/mp4" />
           {/* Fallback for browsers that don't support video */}
