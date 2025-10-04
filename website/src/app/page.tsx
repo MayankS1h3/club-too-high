@@ -85,6 +85,9 @@ export default function Home() {
           onError={(e) => {
             console.error('Video failed to load from Cloudinary:', e);
             e.currentTarget.style.display = 'none';
+            // Show fallback background
+            const fallback = document.getElementById('video-fallback');
+            if (fallback) fallback.classList.remove('hidden');
           }}
           onLoadStart={() => console.log('Video started loading')}
           onCanPlay={() => console.log('Video can play')}
@@ -98,7 +101,10 @@ export default function Home() {
         </video>
         
         {/* Fallback gradient background when video fails */}
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900"></div>
+        <div 
+          id="video-fallback" 
+          className="absolute inset-0 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 hidden"
+        ></div>
         
         {/* Dark overlay for text readability */}
         <div className="absolute inset-0 bg-black/60"></div>
