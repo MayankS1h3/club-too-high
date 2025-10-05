@@ -340,16 +340,6 @@ export default function BookingForm({ event, user, onClose, onSuccess }: Booking
           </div>
         )}
       </div>
-
-      <div className="mt-8">
-        <button
-          onClick={handlePayment}
-          disabled={loading || totalTickets === 0}
-          className="w-full bg-cyan-400 text-black py-4 rounded-lg font-medium text-lg hover:bg-cyan-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          {loading ? 'Processing...' : totalTickets === 0 ? 'Select Tickets' : `Pay ₹${totalAmount.toLocaleString()}`}
-        </button>
-      </div>
     </div>
   )
 
@@ -425,8 +415,8 @@ export default function BookingForm({ event, user, onClose, onSuccess }: Booking
         // You can add error reporting service here later
       }}
     >
-      <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-        <div className="bg-gray-900 max-w-md w-full rounded-lg">
+      <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 overflow-y-auto">
+        <div className="bg-gray-900 max-w-md w-full rounded-lg my-8">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-800">
           <h2 className="text-xl font-light text-white">
@@ -464,10 +454,10 @@ export default function BookingForm({ event, user, onClose, onSuccess }: Booking
           <div className="p-6 border-t border-gray-800">
             <button
               onClick={handlePayment}
-              disabled={loading || !razorpayLoaded}
-              className="w-full py-3 bg-white text-black font-medium hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={loading || !razorpayLoaded || totalTickets === 0}
+              className="w-full py-3 bg-cyan-400 text-black font-medium hover:bg-cyan-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-lg"
             >
-              {loading ? 'Processing...' : !razorpayLoaded ? 'Loading Payment...' : `Pay ₹${totalAmount.toLocaleString()}`}
+              {loading ? 'Processing...' : !razorpayLoaded ? 'Loading Payment...' : totalTickets === 0 ? 'Select Tickets' : `Pay ₹${totalAmount.toLocaleString()}`}
             </button>
           </div>
         )}
