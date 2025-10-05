@@ -171,8 +171,20 @@ export default function Home() {
                        onMouseLeave={(e) => {
                          e.currentTarget.style.borderColor = 'rgba(0, 255, 255, 0.2)'
                        }}>
-                    <div className="flex items-center justify-center h-48" style={{backgroundColor: 'rgba(0, 255, 255, 0.1)'}}>
-                      <div className="text-6xl" style={{color: '#00FFFF'}}>♪</div>
+                    <div className="relative h-48 overflow-hidden">
+                      {event.poster_image_url ? (
+                        <img
+                          src={event.poster_image_url}
+                          alt={event.title}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-full" style={{backgroundColor: 'rgba(0, 255, 255, 0.1)'}}>
+                          <div className="text-6xl" style={{color: '#00FFFF'}}>♪</div>
+                        </div>
+                      )}
+                      {/* Gradient overlay for better text readability */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
                     </div>
                     <div className="p-6">
                       <div className="text-sm font-semibold mb-2" style={{color: '#00FFFF'}}>
