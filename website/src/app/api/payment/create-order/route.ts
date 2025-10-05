@@ -201,7 +201,10 @@ export async function POST(request: NextRequest) {
           payment_id: razorpayOrder.id,
           status: 'pending',
           razorpay_order_id: razorpayOrder.id,
-          receipt_id: receipt
+          receipt_id: receipt,
+          womens_tickets: cart.women,
+          couple_tickets: cart.couple,
+          stag_tickets: cart.stag
         })
         .select()
         .single()

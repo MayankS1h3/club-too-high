@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { getUpcomingEvents } from '@/lib/database'
 import type { DatabaseEvent } from '@/lib/database-types'
 import Link from 'next/link'
+import EventPosterPlaceholder from '@/components/EventPosterPlaceholder'
 
 export default function EventsPage() {
   const [events, setEvents] = useState<DatabaseEvent[]>([])
@@ -92,16 +93,20 @@ export default function EventsPage() {
                 className="group bg-gray-900 border border-gray-800 hover:border-gray-600 transition-all duration-300 overflow-hidden"
               >
                 {/* Event Image */}
-                {event.poster_image_url && (
-                  <div className="relative h-64 overflow-hidden">
-                    <img
-                      src={event.poster_image_url}
-                      alt={event.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors duration-300"></div>
-                  </div>
-                )}
+                <div className="relative h-64 overflow-hidden">
+                  {event.poster_image_url ? (
+                    <>
+                      <img
+                        src={event.poster_image_url}
+                        alt={event.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors duration-300"></div>
+                    </>
+                  ) : (
+                    <EventPosterPlaceholder title={event.title} size="medium" />
+                  )}
+                </div>
 
                 {/* Event Content */}
                 <div className="p-6">

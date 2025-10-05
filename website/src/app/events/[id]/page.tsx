@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/auth'
 import type { DatabaseEvent } from '@/lib/database-types'
 import BookingForm from '@/components/BookingForm'
 import PaymentErrorBoundary from '@/components/PaymentErrorBoundary'
+import EventPosterPlaceholder from '@/components/EventPosterPlaceholder'
 import { logPaymentError } from '@/lib/error-logging'
 
 export default function EventDetailPage() {
@@ -110,9 +111,7 @@ export default function EventDetailPage() {
                 className="w-full h-96 lg:h-full object-cover"
               />
             ) : (
-              <div className="w-full h-96 lg:h-full bg-gray-800 flex items-center justify-center">
-                <div className="text-6xl">🎵</div>
-              </div>
+              <EventPosterPlaceholder title={event.title} size="large" />
             )}
           </div>
 

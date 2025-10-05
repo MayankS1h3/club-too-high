@@ -37,6 +37,9 @@ export interface DatabaseBooking {
   receipt_id: string | null
   failure_reason: string | null
   payment_status: 'pending' | 'paid' | 'failed' | null
+  womens_tickets?: number
+  couple_tickets?: number
+  stag_tickets?: number
   created_at: string
   updated_at: string
 }
@@ -71,6 +74,9 @@ export interface CreateBookingInput {
   status: 'pending' | 'paid' | 'failed'
   razorpay_order_id: string
   receipt_id: string
+  womens_tickets?: number
+  couple_tickets?: number
+  stag_tickets?: number
 }
 
 export interface UpdateBookingPaymentInput {
