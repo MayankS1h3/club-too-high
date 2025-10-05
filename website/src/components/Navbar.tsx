@@ -60,14 +60,14 @@ export default function Navbar() {
         {user ? (
           <div className="dropdown dropdown-end">
             <div tabIndex={0} role="button" className="btn btn-ghost btn-circle avatar hover:bg-accent/10">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-accent to-primary flex items-center justify-center">
+              <div className="w-10 h-10 rounded-full bg-base-300 flex items-center justify-center">
                 <svg 
                   xmlns="http://www.w3.org/2000/svg" 
                   fill="none" 
                   viewBox="0 0 24 24" 
                   strokeWidth={1.5} 
                   stroke="currentColor" 
-                  className="w-6 h-6 text-base-100"
+                  className="w-5 h-5 text-base-content"
                 >
                   <path 
                     strokeLinecap="round" 

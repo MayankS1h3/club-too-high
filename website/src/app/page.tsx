@@ -83,17 +83,11 @@ export default function Home() {
           playsInline
           className="absolute inset-0 hero-video"
           onError={(e) => {
-            console.error('Video failed to load from Cloudinary:', e);
             e.currentTarget.style.display = 'none';
             // Show fallback background
             const fallback = document.getElementById('video-fallback');
             if (fallback) fallback.classList.remove('hidden');
           }}
-          onLoadStart={() => console.log('Video started loading')}
-          onCanPlay={() => console.log('Video can play')}
-          onLoadedData={() => console.log('Video loaded')}
-          onPlay={() => console.log('Video started playing')}
-          onPause={() => console.log('Video paused')}
         >
           <source src="https://res.cloudinary.com/dojbcrpp0/video/upload/v1759562630/2022395-hd_1920_1080_30fps_ipdste.mp4" type="video/mp4" />
           {/* Fallback for browsers that don't support video */}
