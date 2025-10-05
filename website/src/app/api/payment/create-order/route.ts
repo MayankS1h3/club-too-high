@@ -79,13 +79,16 @@ export async function POST(request: NextRequest) {
       return createErrorResponse('Invalid request format', 400, validatedRequest.errors)
     }
 
-    const { eventId, userId, numTickets, totalAmount } = validatedRequest.data
+    const { eventId, userId, cart, totalAmount } = validatedRequest.data
+
+    // Calculate total tickets from cart
+    const totalTickets = cart.women + cart.couple + cart.stag
 
     // Comprehensive input validation
     const validationResults = [
       validateUUID(eventId),
       validateUUID(userId),
-      validateTicketQuantity(numTickets),
+      validateTicketQuantity(totalTickets),
       validatePaymentAmount(totalAmount)
     ]
 
@@ -161,7 +164,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Calculate total amount (server-side validation)
-    const calculatedAmount = event.ticket_price * numTickets
+    const calculatedAmount = (cart.women * event.woman_price) + 
+                            (cart.couple * event.couple_price) + 
+                            (cart.stag * event.stag_price)
     if (Math.abs(calculatedAmount - totalAmount) > 0.01) {
       return createErrorResponse(
         'Amount mismatch. Expected: ₹' + calculatedAmount + ', Received: ₹' + totalAmount,
@@ -191,7 +196,7 @@ export async function POST(request: NextRequest) {
         .insert({
           event_id: eventId,
           user_id: userId,
-          num_of_tickets: numTickets,
+          num_of_tickets: totalTickets,
           total_amount: totalAmount,
           payment_id: razorpayOrder.id,
           status: 'pending',

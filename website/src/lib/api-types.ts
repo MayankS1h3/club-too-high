@@ -3,7 +3,11 @@
 export interface PaymentCreateOrderRequest {
   eventId: string
   userId: string
-  numTickets: number
+  cart: {
+    women: number
+    couple: number
+    stag: number
+  }
   totalAmount: number
 }
 
@@ -110,9 +114,15 @@ export function isPaymentCreateOrderRequest(data: any): data is PaymentCreateOrd
     typeof data === 'object' &&
     typeof data.eventId === 'string' &&
     typeof data.userId === 'string' &&
-    typeof data.numTickets === 'number' &&
+    typeof data.cart === 'object' &&
+    typeof data.cart.women === 'number' &&
+    typeof data.cart.couple === 'number' &&
+    typeof data.cart.stag === 'number' &&
     typeof data.totalAmount === 'number' &&
-    data.numTickets > 0 &&
+    data.cart.women >= 0 &&
+    data.cart.couple >= 0 &&
+    data.cart.stag >= 0 &&
+    (data.cart.women + data.cart.couple + data.cart.stag) > 0 &&
     data.totalAmount > 0
   )
 }

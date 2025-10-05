@@ -25,28 +25,39 @@ interface BookingFormProps {
 }
 
 export default function BookingForm({ event, user, onClose, onSuccess }: BookingFormProps) {
-  const [numTickets, setNumTickets] = useState(1)
-  const [ticketType, setTicketType] = useState<TicketType>('women')
+  // Cart-style state for multiple ticket types
+  const [cart, setCart] = useState({
+    women: 0,
+    couple: 0,
+    stag: 0
+  })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [step, setStep] = useState<'details' | 'payment' | 'processing' | 'success'>('details')
   const [razorpayLoaded, setRazorpayLoaded] = useState(false)
 
-  // Calculate price based on selected ticket type
-  const getTicketPrice = () => {
-    switch (ticketType) {
-      case 'women':
-        return event.woman_price
-      case 'couple':
-        return event.couple_price
-      case 'stag':
-        return event.stag_price
-      default:
-        return event.woman_price
-    }
+  // Update cart quantity for a specific ticket type
+  const updateCartQuantity = (ticketType: TicketType, quantity: number) => {
+    const maxTickets = 10
+    const newQuantity = Math.max(0, Math.min(quantity, maxTickets))
+    setCart(prev => ({
+      ...prev,
+      [ticketType]: newQuantity
+    }))
   }
 
-  const totalAmount = getTicketPrice() * numTickets
+  // Calculate total tickets in cart
+  const getTotalTickets = () => cart.women + cart.couple + cart.stag
+
+  // Calculate total amount
+  const getTotalAmount = () => {
+    return (cart.women * event.woman_price) + 
+           (cart.couple * event.couple_price) + 
+           (cart.stag * event.stag_price)
+  }
+
+  const totalAmount = getTotalAmount()
+  const totalTickets = getTotalTickets()
 
   // Load Razorpay script
   useEffect(() => {
@@ -75,7 +86,7 @@ export default function BookingForm({ event, user, onClose, onSuccess }: Booking
       const requestBody: PaymentCreateOrderRequest = {
         eventId: event.id,
         userId: user.id,
-        numTickets,
+        cart: cart,
         totalAmount,
       }
 
@@ -147,7 +158,7 @@ export default function BookingForm({ event, user, onClose, onSuccess }: Booking
         amount: orderData.amount,
         currency: orderData.currency,
         name: razorpayConfig.company_name,
-        description: `${event.title} - ${numTickets} ticket(s)`,
+        description: `${event.title} - ${totalTickets} ticket(s)`,
         image: razorpayConfig.image,
         order_id: orderData.orderId,
         handler: async (response: RazorpayResponse) => {
@@ -172,7 +183,7 @@ export default function BookingForm({ event, user, onClose, onSuccess }: Booking
         notes: {
           event_id: event.id,
           user_id: user.id,
-          num_tickets: numTickets,
+          num_tickets: totalTickets,
         },
         theme: razorpayConfig.theme,
         modal: {
@@ -217,85 +228,127 @@ export default function BookingForm({ event, user, onClose, onSuccess }: Booking
 
       <div className="border-t border-gray-800 pt-6">
         <label className="block text-sm font-medium text-gray-300 mb-4">
-          Ticket Type
+          Select Tickets
         </label>
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          <button
-            type="button"
-            onClick={() => setTicketType('women')}
-            className={`p-3 border rounded-lg text-center transition-colors ${
-              ticketType === 'women'
-                ? 'border-white bg-white text-black'
-                : 'border-gray-600 text-white hover:border-white'
-            }`}
-          >
-            <div className="font-medium">Women</div>
-            <div className="text-sm mt-1">₹{event.woman_price.toLocaleString()}</div>
-          </button>
-          <button
-            type="button"
-            onClick={() => setTicketType('couple')}
-            className={`p-3 border rounded-lg text-center transition-colors ${
-              ticketType === 'couple'
-                ? 'border-white bg-white text-black'
-                : 'border-gray-600 text-white hover:border-white'
-            }`}
-          >
-            <div className="font-medium">Couple</div>
-            <div className="text-sm mt-1">₹{event.couple_price.toLocaleString()}</div>
-          </button>
-          <button
-            type="button"
-            onClick={() => setTicketType('stag')}
-            className={`p-3 border rounded-lg text-center transition-colors ${
-              ticketType === 'stag'
-                ? 'border-white bg-white text-black'
-                : 'border-gray-600 text-white hover:border-white'
-            }`}
-          >
-            <div className="font-medium">Stag</div>
-            <div className="text-sm mt-1">₹{event.stag_price.toLocaleString()}</div>
-          </button>
+        
+        {/* Women Tickets */}
+        <div className="mb-4 p-4 border border-gray-700 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <div className="font-medium text-white">Women</div>
+              <div className="text-sm text-gray-400">₹{event.woman_price.toLocaleString()} per ticket</div>
+            </div>
+            <div className="flex items-center space-x-3">
+              <button
+                type="button"
+                onClick={() => updateCartQuantity('women', cart.women - 1)}
+                disabled={cart.women === 0}
+                className="w-8 h-8 border border-gray-600 rounded text-white hover:border-white disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                -
+              </button>
+              <span className="w-8 text-center text-white">{cart.women}</span>
+              <button
+                type="button"
+                onClick={() => updateCartQuantity('women', cart.women + 1)}
+                className="w-8 h-8 border border-gray-600 rounded text-white hover:border-white"
+              >
+                +
+              </button>
+            </div>
+          </div>
+          {cart.women > 0 && (
+            <div className="text-right text-sm text-cyan-400">
+              Subtotal: ₹{(cart.women * event.woman_price).toLocaleString()}
+            </div>
+          )}
         </div>
+
+        {/* Couple Tickets */}
+        <div className="mb-4 p-4 border border-gray-700 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <div className="font-medium text-white">Couple</div>
+              <div className="text-sm text-gray-400">₹{event.couple_price.toLocaleString()} per ticket</div>
+            </div>
+            <div className="flex items-center space-x-3">
+              <button
+                type="button"
+                onClick={() => updateCartQuantity('couple', cart.couple - 1)}
+                disabled={cart.couple === 0}
+                className="w-8 h-8 border border-gray-600 rounded text-white hover:border-white disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                -
+              </button>
+              <span className="w-8 text-center text-white">{cart.couple}</span>
+              <button
+                type="button"
+                onClick={() => updateCartQuantity('couple', cart.couple + 1)}
+                className="w-8 h-8 border border-gray-600 rounded text-white hover:border-white"
+              >
+                +
+              </button>
+            </div>
+          </div>
+          {cart.couple > 0 && (
+            <div className="text-right text-sm text-cyan-400">
+              Subtotal: ₹{(cart.couple * event.couple_price).toLocaleString()}
+            </div>
+          )}
+        </div>
+
+        {/* Stag Tickets */}
+        <div className="mb-4 p-4 border border-gray-700 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <div className="font-medium text-white">Stag</div>
+              <div className="text-sm text-gray-400">₹{event.stag_price.toLocaleString()} per ticket</div>
+            </div>
+            <div className="flex items-center space-x-3">
+              <button
+                type="button"
+                onClick={() => updateCartQuantity('stag', cart.stag - 1)}
+                disabled={cart.stag === 0}
+                className="w-8 h-8 border border-gray-600 rounded text-white hover:border-white disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                -
+              </button>
+              <span className="w-8 text-center text-white">{cart.stag}</span>
+              <button
+                type="button"
+                onClick={() => updateCartQuantity('stag', cart.stag + 1)}
+                className="w-8 h-8 border border-gray-600 rounded text-white hover:border-white"
+              >
+                +
+              </button>
+            </div>
+          </div>
+          {cart.stag > 0 && (
+            <div className="text-right text-sm text-cyan-400">
+              Subtotal: ₹{(cart.stag * event.stag_price).toLocaleString()}
+            </div>
+          )}
+        </div>
+
+        {/* Cart Summary */}
+        {totalTickets > 0 && (
+          <div className="mt-6 p-4 bg-gray-800/50 rounded-lg">
+            <div className="flex justify-between items-center text-white">
+              <span className="font-medium">Total ({totalTickets} tickets)</span>
+              <span className="text-xl font-bold text-cyan-400">₹{totalAmount.toLocaleString()}</span>
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="border-t border-gray-800 pt-6">
-        <label className="block text-sm font-medium text-gray-300 mb-4">
-          Number of Tickets
-        </label>
-        <div className="flex items-center space-x-4">
-          <button
-            type="button"
-            onClick={() => setNumTickets(Math.max(1, numTickets - 1))}
-            className="w-10 h-10 border border-gray-600 text-white hover:border-white transition-colors flex items-center justify-center"
-          >
-            -
-          </button>
-          <span className="text-xl text-white w-12 text-center">{numTickets}</span>
-          <button
-            type="button"
-            onClick={() => setNumTickets(Math.min(10, numTickets + 1))}
-            className="w-10 h-10 border border-gray-600 text-white hover:border-white transition-colors flex items-center justify-center"
-          >
-            +
-          </button>
-        </div>
-        <div className="text-sm text-gray-400 mt-2">Maximum 10 tickets per booking</div>
-      </div>
-
-      <div className="border-t border-gray-800 pt-6">
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-gray-300">Ticket Price ({ticketType})</span>
-          <span className="text-white">₹{getTicketPrice().toLocaleString()}</span>
-        </div>
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-gray-300">Quantity</span>
-          <span className="text-white">{numTickets}</span>
-        </div>
-        <div className="flex justify-between items-center text-xl font-medium pt-2 border-t border-gray-700">
-          <span className="text-white">Total</span>
-          <span className="text-white">₹{totalAmount.toLocaleString()}</span>
-        </div>
+      <div className="mt-8">
+        <button
+          onClick={handlePayment}
+          disabled={loading || totalTickets === 0}
+          className="w-full bg-cyan-400 text-black py-4 rounded-lg font-medium text-lg hover:bg-cyan-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {loading ? 'Processing...' : totalTickets === 0 ? 'Select Tickets' : `Pay ₹${totalAmount.toLocaleString()}`}
+        </button>
       </div>
     </div>
   )
@@ -343,7 +396,7 @@ export default function BookingForm({ event, user, onClose, onSuccess }: Booking
       <div className="text-gray-300 space-y-2">
         <div>Your tickets for {event.title} have been booked successfully.</div>
         <div className="text-white font-medium">
-          {numTickets} ticket{numTickets > 1 ? 's' : ''} • ₹{totalAmount.toLocaleString()}
+          {totalTickets} ticket{totalTickets > 1 ? 's' : ''} • ₹{totalAmount.toLocaleString()}
         </div>
       </div>
       <div className="text-sm text-gray-400">
